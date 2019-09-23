@@ -11,6 +11,11 @@ The repository contains data structures and algorithms to parse/validate/store I
 pip install asn1crypto
 ```
 
+* [cryptography](https://github.com/pyca/cryptography)     (*Note: Library has to be patched see [README](https://github.com/ZeroPass/PassID-Server/blob/master/src/pymrtd/pki/README.md) of pki module*)
+```
+pip install cryptography
+```
+
 * [Python LDIF parser](https://ldif3.readthedocs.io/en/latest/)
 ```
 pip install ldif3
