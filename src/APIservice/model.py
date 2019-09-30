@@ -17,9 +17,6 @@ class Model:
     def login(self, publicKeyAddress, challengeId, signature) -> bool:
 
 
-
-
-
 ####################################################################
 
 getChallenge:OUT: dict[challenge], expiration(utc time)
