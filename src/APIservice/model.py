@@ -5,117 +5,153 @@
     Python Version: 3.6
 '''
 
-class Model:
-    """Set of functions to use it in the API (JSON-RPC)"""
-
-    def getChallenge(self) -> bytes:
-        """Function returns challenge that passport needs to sign"""
-
-    def register(self, challengeId: bytes, signature: bytes, publicKey, sodData) -> bool:
-        """Check if signature is correct on given server challenge (it was given in previous step)"""
-
-    def login(self, publicKeyAddress, challengeId, signature) -> bool:
+#before start you need to install json-rpc librarby (pip install json-rpc)
+#sudo apt-get install postgresql postgresql-contrib
+#pip install sqlalchemy
+#pip install psycopg2 sqlalchemy
+#sudo -u postgres createuser --interactive
 
 
-####################################################################
+from werkzeug.wrappers import Request, Response
+from werkzeug.serving import run_simple
 
-getChallenge:OUT: dict[challenge], expiration(utc time)
+from database.storage.storageManager import Connection
 
-register: IN: challengeId, signature, public key, SOD data + personal data(optional)
-        OUT: result(status)
+from jsonrpc import JSONRPCResponseManager, dispatcher
+from database.storage.challengeStorage import ChallengeStorage, APIcheckSignature_DB, ChallengeStorageError
+from database.storage.accountStorage import writeToDB_account, readFromDBwithPublicKeyAddress_account, AccountStorageError
+from settings import *
+from datetime import datetime, timedelta
 
-register Additionaldata: like above but without SOD and PKA
+class DatabaseAPIError(Exception):
+    pass
 
-login: in: public key address(ripmd 160 over public key), challengeId, signature
-        OYT: result (status like HTTP codes)
+class ModelError(Exception):
+    pass
 
+class DatabaseAPI:
+    conn = None
 
+    def __init__(self):
+        """Creating connection to the database and initialization of main strucutres"""
+        self.conn = Connection(config["database"]["user"], config["database"]["pass"], config["database"]["db"])
 
-##########################################################################
+    def createChallenge(self) -> dict:
+        """Create and save challenge"""
 
-CRL: \
-    -object
-    -serial Number
-    -subject key //not
-    -authority key (CSCA - foreign key)
-    -countrKey
-    -start, end valid
-    -signiture algorithm
-    -signature hash algorithm
--SHA256 hash over whole object
+        #create challenge parameters
+        challenge = ChallengeStorage()
+        param = challenge.create()
 
-DSC + CSCA:
-    - revocatingCRLSerial number (if null not revocated, else CRL(serial Number))
-    -object
-    - Country
-    - SerialNumber
-    -subject key
-    -authority key (CSCA could have it or not)
-    -public key
-    -PKI algorithm
-    -signature algoritm
-    -signature hash algorithm
-    -is valid:start stop
-    -is valid start stop(private key usage valid - when private key can make signatures)
-    -SHA256 hash over whole object
+        #save to database
+        self.conn.getSession().add(challenge)
+        self.conn.getSession().commit()
 
-    //only in csca
-    -CRL distibution point (where are CRL stored)
-    -subject basic data of issuer
-    -subject/Issuer alternative name
+        return param
 
+    def getValidUntil(self, SOD):
+        """Return datetime certificate is valid"""
+        #TODO: get real data from SOD
+        return datetime.now() - timedelta(days=15)
 
-@property
-def issuerCountry(self) -> str:
-    """Function returns country of CRL issuer """
-    country = self.issuer.native['country_name']
-    logger.debug("Getting country of CRL issuer: " + country)
-    return country
+    def register(self, challengeId: str, signature: str, publicKey: str, sodData: str) -> str:
+        """API call: register"""
+        #check signature
+        APIcheckSignature_DB(challengeId, signature, config["registerTimeFrame"], self.conn)
 
+        #save to database and return public key address
+        validUntil = self.getValidUntil(sodData)
+        return writeToDB_account(publicKey, validUntil, sodData, self.conn)
 
-@property
-def size(self) -> int:
-    """Function returns size of CRL"""
-    size = len(self['tbs_cert_list']['revoked_certificates'])
-    logger.debug("Getting size of CRL: " + size)
-    return size
+    #public key address(ripmd 160 over public key), challengeId, signature
+    def login(self, challengeId: str, signature: str, publicKeyAddress: str) -> dict:
+        """API call: login"""
+        #check signature
+        APIcheckSignature_DB(challengeId, signature, config["registerTimeFrame"], self.conn)
+        #read from database
+        return readFromDBwithPublicKeyAddress_account(publicKeyAddress, self.conn)
 
 
-@property
-def thisUpdate(self) -> datetime:
-    """In certificate the field is 'this_update'"""
-    this_update = self['tbs_cert_list']['this_update'].native
-    logger.debug("CRL has been created on: " + str(this_update))
-    return this_update
+#database API creation
+databaseAPI = DatabaseAPI()
+
+@dispatcher.add_method
+def getChallenge(self) -> dict:
+    """Function returns challenge that passport needs to sign"""
+    try:
+        params = databaseAPI.createChallenge()
+        for key, value in params.items():
+            return {"success": 1, "id": key, "challenge": value}
+
+        #item not found
+        raise ModelError("Creation challengeId and value failed.")
+    except DatabaseAPIError as e:
+        return {"success": 0, "error:": 401, "detail": e}
+    except ChallengeStorageError as e:
+        return {"success": 0, "error:": 402, "detail": e}
+    except Exception as e:
+        return {"success": 0, "error:": 400, "detail": e}
 
 
-@property
-def nextUpdate(self) -> datetime:
-    """In certificate the field is 'next_update'"""
-    next_update = self['tbs_cert_list']['next_update'].native
-    logger.debug("Next CRL update: " + str(next_update))
-    return next_update
+@dispatcher.add_method
+def register(self, challengeId: str, signature: str, publicKey: str, sodData: str) -> bool:
+    """Check if signature is correct on given server challenge (it was given in previous step)"""
+    try:
+        pka = databaseAPI.register(challengeId, signature, publicKey, sodData)
+        return {"success": 1, "publicKeyAddress": pka}
+    except DatabaseAPIError as e:
+        return {"success": 0, "error:": 401, "detail": e}
+    except ChallengeStorageError as e:
+        return {"success": 0, "error:": 402, "detail": e}
+    except AccountStorageError as e:
+        return {"success": 0, "error:": 403, "detail": e}
+    except Exception as e:
+        return {"success": 0, "error:": 400, "detail": e}
 
 
-@property
-def signatureAlgorithm(self) -> str:
-    """It returns signature algorithm"""
-    sig_algo = self['signature_algorithm'].signature_algo
-    logger.debug("Signature algorithm: " + sig_algo)
-    return sig_algo
+@dispatcher.add_method
+def login(self, challengeId: str, signature: str, publicKey: str) -> bool:
+    """Check if signature is correct on given server challenge (it was given in previous step)"""
+    try:
+        data = databaseAPI.login(challengeId, signature, publicKey)
+        return {"success": 1,
+                "hasAccess": 1,
+                "validUntil": str(data.getValidUntil())}
+    except DatabaseAPIError as e:
+        return {"success": 0, "error:": 401, "detail": e}
+    except ChallengeStorageError as e:
+        return {"success": 0, "error:": 402, "detail": e}
+    except AccountStorageError as e:
+        return {"success": 0, "error:": 403, "detail": e}
+    except Exception as e:
+        return {"success": 0, "error:": 400, "detail": e}
 
 
-@property
-def signatureHashAlgorithm(self) -> str:
-    """It returns hash of signature algorithm"""
-    hash_algo = self['signature_algorithm'].hash_algo
-    logger.debug("Signature hash algorithm: " + hash_algo)
-    return hash_algo
+class Application:
+    """API server"""
+
+    @Request.application
+    def createCalls(self, request):
+        """Create API calls"""
+        response = JSONRPCResponseManager.handle(
+            request.data, dispatcher)
+        return Response(response.json, mimetype='application/json')
 
 
-@property
-def fingerprint(self) -> str:
-    """SHA256 hash over CRL object"""
-    fp = self.sha256.hex()
-    logger.debug("Fingerprint of CRL object: " + fp)
-    return fp
+def test():
+    """Test API model class. Call it when you need to test if API calls works"""
+    import random
+    publicKey = "publicKey" + str(random.randint(0,1000))
+    #test registration
+    a = getChallenge("")
+    for key, value in a.items():
+        if key == "id":
+            result = register("", value, "signature", publicKey, "SOD")
+            print(result)
+
+    #test login
+    b = getChallenge("")
+    for key, value in b.items():
+        if key == "id":
+            result = login("", value, "signature", publicKey)
+            print(result)
