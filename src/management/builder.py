@@ -9,13 +9,17 @@ from ldif3 import LDIFParser
 from asn1crypto import crl, x509
 import re
 
-from pymrtd.pki.crl import CertificateRevocationList, writeToDB_CRL, readFromDB_CRL
-from pymrtd.pki.x509 import DocumentSignerCertificate, writeToDB_DSC, readFromDB_DSC
+from pymrtd.pki.crl import CertificateRevocationList
+from pymrtd.pki.x509 import DocumentSignerCertificate
 
-#from pymrtd.pki.ml import CscaMasterList
-from pymrtd.data.storage.storageManager import Connection
+from database.storage.certificateRevocationListStorage import writeToDB_CRL, readFromDB_CRL
+from database.storage.x509Storage import writeToDB_DSC, readFromDB_DSC
+from database.storage.x509Storage import CscaCertificate
 
-from pymrtd.settings import config
+from pymrtd.pki.ml import CscaMasterList
+from database.storage.storageManager import Connection
+
+from settings import config
 
 
 class Builder:
@@ -25,7 +29,7 @@ class Builder:
         """CSCAfile and dscCrlFIle need to be in ldif format - downloaded from ICAO website"""
         conn = Connection(config["database"]["user"], config["database"]["pass"], config["database"]["db"])
         self.parseDscCrlFile(dscCrlFile, conn)
-
+        #self.parseCSCAFile(cscaFile, conn)
 
     def parseDscCrlFile(self, dscCrlFile, connection: Connection):
         """Parsing DSC/CRL file"""
@@ -37,20 +41,8 @@ class Builder:
                 #parse to our object
                 dsc.__class__ = DocumentSignerCertificate
                 dsc.__init__()
-
-                #############
-                from API.model import ChallengeStorage
-                challenge = ChallengeStorage()
-                # param = challenge.create()
-
-                # save to database
-                connection.getSession().add(challenge)
-                connection.getSession().commit()
-                ret = 9
-                #############
-
                 #write to DB
-                #writeToDB_DSC(dsc, countryCode, connection)
+                writeToDB_DSC(dsc, countryCode, connection)
 
             if 'certificateRevocationList;binary' in entry:
                 countryCode = re.findall(r'[c,C]{1}=(.*)(,dc=data){1}', dn)[0][0]
@@ -59,9 +51,9 @@ class Builder:
                 revocationList.__class__ = CertificateRevocationList
                 revocationList.__init__()
                 #write to DB
-                #writeToDB_CRL(revocationList, countryCode, connection)
+                writeToDB_CRL(revocationList, countryCode, connection)
 
-    def parseCSAFile(self, CSCAFile, connection: Connection):
+    def parseCSCAFile(self, CSCAFile, connection: Connection):
         """Parsing CSCA file"""
         ml = CscaMasterList(CSCAFile)
         r = 9

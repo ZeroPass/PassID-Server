@@ -1,4 +1,11 @@
-from pymrtd.management.builder import Builder
+'''
+    File name: main.py
+    Author: ZeroPass - Nejc Skerjanc
+    License: MIT lincense
+    Python Version: 3.6
+'''
+
+from management.builder import Builder
 
 
 DSC_CRL = open('C://Users/nejko/Desktop/ZeroPass/B1/random/parseCSCAandCRL/data/icaopkd-001-dsccrl-003749.ldif', 'rb')

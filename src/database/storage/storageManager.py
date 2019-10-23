@@ -1,11 +1,14 @@
-#sudo apt-get install postgresql postgresql-contrib
-#pip install sqlalchemy
-#pip install psycopg2 sqlalchemy
-#sudo -u postgres createuser --interactive
+'''
+    File name: storageManager.py
+    Author: ZeroPass - Nejc Skerjanc
+    License: MIT lincense
+    Python Version: 3.6
+'''
 
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, LargeBinary, SmallInteger
+from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, LargeBinary, Boolean
 from sqlalchemy.orm import mapper, sessionmaker
+from sqlalchemy.sql import func
 
 #creating base class from template
 from sqlalchemy.ext.declarative import declarative_base
@@ -51,15 +54,16 @@ cscaCertificate = Table('CSCACertificate', metadata,
 
 challenge = Table('userChallenge', metadata,
                             Column('id', String, primary_key=True),
-                            Column('challenge', Integer)
+                            Column('challenge', String),
+                            Column("createTime", DateTime(timezone=True), default=func.now())
                             )
 
 account = Table('account', metadata,
-                            Column('accountID', String, primary_key=True),
-                            Column('publicKey', Integer),
+                            Column('publicKeyAddress', String, primary_key=True),
+                            Column('publicKey', String),
                             Column('validUntil', DateTime),
                             Column('SOD', String),
-                            Column('isValid', SmallInteger)
+                            Column('isValid', Boolean)
                             )
 
 class Connection:
@@ -103,9 +107,10 @@ class Connection:
         """Initialize tables for usage in database"""
 
         #imports - to avoid circle imports
-        from pymrtd.pki.crl import CertificateRevocationListStorage
-        from pymrtd.pki.x509 import DocumentSignerCertificateStorage, CSCAStorage
-        from dir1.model import ChallengeStorage
+        from database.storage.certificateRevocationListStorage import CertificateRevocationListStorage
+        from database.storage.x509Storage import DocumentSignerCertificateStorage, CSCAStorage
+        from database.storage.challengeStorage import ChallengeStorage
+        from database.storage.accountStorage import AccountStorage
 
         #CertificateRevocationList
         mapper(CertificateRevocationListStorage, certificateRevocationListDB)
@@ -120,7 +125,7 @@ class Connection:
         mapper(ChallengeStorage, challenge)
 
         # account
-        #mapper(CSCAStorage, account)
+        mapper(AccountStorage, account)
 
         #creating tables
-        Base.metadata.create_all(self.connectionObj, tables=[certificateRevocationListDB, documentSignerCertificate, cscaCertificate, challenge])
+        Base.metadata.create_all(self.connectionObj, tables=[certificateRevocationListDB, documentSignerCertificate, cscaCertificate, challenge, account])

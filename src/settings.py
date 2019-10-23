@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 
 config = {"database":
             {
-            "user": "nejko",
-            "pass": "nejko",
-            "db" : "icao"
-            }
+            "user": "",
+            "pass": "",
+            "db" : ""
+            },
+         "registerTimeFrame" : 300 #5 minutes
 }
