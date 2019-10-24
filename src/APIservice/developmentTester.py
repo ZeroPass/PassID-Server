@@ -48,7 +48,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-
-#subject - authority
-#issucer - subject

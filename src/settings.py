@@ -14,7 +14,7 @@ config = {"database":
             {
             "user": "",
             "pass": "",
-            "db" : ""
+            "db" : "icao"
             },
          "registerTimeFrame" : 300 #5 minutes
 }

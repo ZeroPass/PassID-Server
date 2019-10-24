@@ -87,5 +87,5 @@ def readFromDBwithPublicKey_account(publicKey: str, connection: Connection) -> A
     try:
         logger.info("Read account object from database. Public key: " + publicKey)
         return readFromDBwithPublicKeyAddress_account(getKeyAddress(publicKey), connection)
-    except Exception:
+    except Exception as e:
         raise AccountStorageError("Problem with reading from object: " + e)
