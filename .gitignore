@@ -6,3 +6,8 @@
 
 # Python
 *.pyc
+
+
+venv37/
+
+venv/
