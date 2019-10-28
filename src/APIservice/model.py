@@ -127,15 +127,12 @@ def login(self, challengeId: str, signature: str, publicKey: str) -> bool:
         return {"success": 0, "error:": 400, "detail": e}
 
 
-class Application:
-    """API server"""
-
-    @Request.application
-    def createCalls(self, request):
-        """Create API calls"""
-        response = JSONRPCResponseManager.handle(
-            request.data, dispatcher)
-        return Response(response.json, mimetype='application/json')
+@Request.application
+def createCalls(request):
+    """Create API calls"""
+    response = JSONRPCResponseManager.handle(
+        request.data, dispatcher)
+    return Response(response.json, mimetype='application/json')
 
 
 def test():
