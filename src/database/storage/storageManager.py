@@ -59,10 +59,11 @@ challenge = Table('userChallenge', metadata,
                             )
 
 account = Table('account', metadata,
-                            Column('publicKeyAddress', String, primary_key=True),
-                            Column('publicKey', String),
+                            Column('uid', String, primary_key=True), # uid = UserId
+                            Column('aaPublicKey', String, nullable=False),
+                            Column('sigAlgo', String, nullable=True),
                             Column('validUntil', DateTime),
-                            Column('SOD', String),
+                            Column('sod', String, nullable=False),
                             Column('isValid', Boolean)
                             )
 
