@@ -26,6 +26,9 @@ from database.storage.accountStorage import writeToDB_account, readFromDBwithUid
 class StorageAPIError(Exception):
     pass
 
+class SeEntryNotFound(StorageAPIError):
+    pass
+
 class StorageAPI(ABC):
 
     @abstractmethod
@@ -111,7 +114,7 @@ class DatabaseAPI(StorageAPI):
            .all()
         
         if len(result) == 0:
-            raise DatabaseAPIError("challenge not found")
+            raise SeEntryNotFound("challenge not found")
 
         cs = result[0]
         c = cs.getChallenge()
@@ -200,7 +203,7 @@ class MemoryDB(StorageAPI):
         try:
             return self._d['proto_challenges'][cid]
         except Exception as e:
-            raise MemoryDBError("Challenge not found") from e
+            raise SeEntryNotFound("Challenge not found") from e
 
     def addChallenge(self, challenge: Challenge, timedate: datetime) -> None:
         if challenge.id in self._d['proto_challenges']:
@@ -233,7 +236,7 @@ class MemoryDB(StorageAPI):
     def getAccountExpiry(self, uid: UserId) -> datetime:
         assert isinstance(uid, UserId)
         if uid not in self._d['accounts']:
-            raise MemoryDBError("Account not found")
+            raise SeEntryNotFound("Account not found")
         accnt = self._d['accounts'][uid]
         return accnt[3]
 
@@ -243,6 +246,6 @@ class MemoryDB(StorageAPI):
         """
         assert isinstance(uid, UserId)
         if uid not in self._d['accounts']:
-            raise MemoryDBError("Account not found")
+            raise SeEntryNotFound("Account not found")
         accnt = self._d['accounts'][uid]
         return (accnt[0], accnt[1], accnt[3])

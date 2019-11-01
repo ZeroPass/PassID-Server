@@ -152,9 +152,11 @@ class PassIdApiServer:
 
     def _handle_exception(self, e: Exception)-> dict:
         if isinstance(e, proto.ProtoError):
+            self._log.debug("Request proto error: {}".format(e))
             raise JSONRPCDispatchException(e.code, str(e))
 
-        if isinstance(e, proto.StorageAPIError): # TODO: better handle this exception
+        if isinstance(e, proto.SeEntryNotFound):
+            self._log.debug("Request storage error: {}".format(e))
             raise JSONRPCDispatchException(404, str(e))
         
         self._log.error("Unhandled exception encountered, e={}".format(e))

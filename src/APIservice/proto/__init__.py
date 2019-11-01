@@ -8,6 +8,7 @@ from .db import (
     DatabaseAPIError,
     MemoryDB,
     MemoryDBError,
+    SeEntryNotFound,
     StorageAPI,
     StorageAPIError
 )
