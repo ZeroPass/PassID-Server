@@ -30,16 +30,22 @@ def _b64csigs_to_bcsigs(str_csigs: List[str]) -> List[bytes]:
 
 class PassIdApiServer:
     """ PassID Api server """
+    api_method_prefix = "passID"
 
     def __init__(self, db: proto.StorageAPI, config: Config):
         self._conf  = config.api_server
         self._proto = proto.PassIdProto(db, config.challenge_ttl)
         self._log   = logging.getLogger(PassIdApiServer.__name__)
 
+        # Register rpc api methods
         self._req_disp = Dispatcher()
-        self._req_disp.add_method(self.getChallenge)
-        self._req_disp.add_method(self.register)
-        self._req_disp.add_method(self.login)
+        def add_api_meth(f):
+            # method format: <api_prefix>.<methodName>
+            self._req_disp.add_method(f, "{}.{}".format(self.api_method_prefix, f.__name__))
+
+        add_api_meth(self.getChallenge)
+        add_api_meth(self.register)
+        add_api_meth(self.login)
 
     def start(self):
             run_simple(self._conf.host, self._conf.port, self._create_calls)

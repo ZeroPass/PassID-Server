@@ -28,7 +28,7 @@ def bsigs_to_b64sigs(bsigs):
 
 def requestChallenge(url: str) -> Challenge:
     payload = {
-        "method": "getChallenge",
+        "method": "passID.getChallenge",
         "params": [],
         "jsonrpc": "2.0",
         "id": 0,
@@ -42,7 +42,7 @@ def requestChallenge(url: str) -> Challenge:
 
 def requestRegister(url: str, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[bytes]):
     payload = {
-        "method": "register",
+        "method": "passID.register",
         "params": {
             "dg15"  : b64encode(dg15.dump()),
             "sod"   : b64encode(sod.dump()),
@@ -66,7 +66,7 @@ def requestRegister(url: str, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[
 
 def requestLogin(url: str, uid: UserId, cid: CID, csigs: List[bytes]):
     payload = {
-        "method": "login",
+        "method": "passID.login",
         "params": {
             "uid"  : uid.toBase64(),
             "cid"   : cid,
