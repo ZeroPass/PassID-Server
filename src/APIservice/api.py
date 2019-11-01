@@ -54,6 +54,7 @@ class PassIdApiServer:
 
 
 # RPC API methods
+    # API: passID.ping
     def ping(self, ping: int) -> dict:
         """ 
         Function returns challenge that passport needs to sign.
@@ -68,6 +69,7 @@ class PassIdApiServer:
         except Exception as e:
             return self._handle_exception(e)
 
+    # API: passID.getChallenge
     def getChallenge(self) -> dict:
         """ 
         Function returns challenge that passport needs to sign.
@@ -81,6 +83,7 @@ class PassIdApiServer:
         except Exception as e:
             return self._handle_exception(e)
 
+    # API: passID.register
     def register(self, dg15: str, sod: str, cid: proto.CID, csigs: List[str], dg14: str = None) -> dict:
         """ 
         Register new user. It returns back to the client userId which is publicKey address,
@@ -107,12 +110,12 @@ class PassIdApiServer:
 
             uid, sk, set = self._proto.register(dg15, sod, cid, csigs, dg14)
             self._log.info(":register(): New user has been registered successfully. uid={} session expires: {}".format(uid2str(uid), set))
-
-            return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": set.timestamp() }
+            print("expires", set.timestamp())
+            return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
             return self._handle_exception(e)
 
-
+    # API: passID.login
     def login(self, uid: str, cid: proto.CID, csigs: List[str]) -> dict:
         """ 
         It returns back session key and session expiration time.
@@ -133,7 +136,7 @@ class PassIdApiServer:
             sk, set = self._proto.login(uid, cid, csigs)
             self._log.info(":login(): User has successfully logged-in. uid={} session expires: {}".format(uid2str(uid), set))
 
-            return { "session_key": sk.toBase64(), "expires": set.timestamp() }
+            return { "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
             return self._handle_exception(e)
 
