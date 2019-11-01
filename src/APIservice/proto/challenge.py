@@ -12,14 +12,18 @@ from cryptography.hazmat.backends import default_backend
 class CID(int):
     """ Represents challenge id """
 
-    def __new__(cls, cid: Union[int, bytes]) -> "CID":
+    def __new__(cls, cid: Union[int, bytes, str], *args, **kwargs) -> "CID":
         if isinstance(cid, int):
-            if cid > 0xFFFFFFFF:
-                ValueError("cid integer too big")
+            if not (-0xFFFFFFFF <= cid <= 0xFFFFFFFF):
+                raise ValueError("cid integer too big")
         elif isinstance(cid, bytes):
             if len(cid) < 4:
-                ValueError("cid bytes too small")
+                raise ValueError("cid bytes too small")
             cid = int.from_bytes(cid[0:4], 'big')
+        elif isinstance(cid, str):
+            cid = int(cid)
+            if not (-0xFFFFFFFF <= cid <= 0xFFFFFFFF):
+                raise ValueError("cid integer string too big")
         else:
             raise ValueError("invalid cid type")
         return cast(CID, super().__new__(cls, cid))  # type: ignore  # https://github.com/python/typeshed/issues/2630  # noqa: E501
