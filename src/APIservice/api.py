@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import List
 
 from werkzeug.wrappers import Request, Response
@@ -43,12 +44,29 @@ class PassIdApiServer:
             # method format: <api_prefix>.<methodName>
             self._req_disp.add_method(f, "{}.{}".format(self.api_method_prefix, f.__name__))
 
+        add_api_meth(self.ping)
         add_api_meth(self.getChallenge)
         add_api_meth(self.register)
         add_api_meth(self.login)
 
     def start(self):
             run_simple(self._conf.host, self._conf.port, self._create_calls)
+
+
+# RPC API methods
+    def ping(self, ping: int) -> dict:
+        """ 
+        Function returns challenge that passport needs to sign.
+        Challenge is base64 encoded.
+        """
+        try:
+            self._log.debug(":ping(): {}".format(ping))
+
+            pong = int.from_bytes(os.urandom(4), 'big')
+            self._log.debug(":ping(): Returning pong={}".format(pong))
+            return { "pong": pong }
+        except Exception as e:
+            return self._handle_exception(e)
 
     def getChallenge(self) -> dict:
         """ 
@@ -119,6 +137,7 @@ class PassIdApiServer:
         except Exception as e:
             return self._handle_exception(e)
 
+# Request handler
     @Request.application
     def _create_calls(self, request):
         """Create API calls"""

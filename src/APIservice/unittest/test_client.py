@@ -26,6 +26,22 @@ def bsigs_to_b64sigs(bsigs):
     return ssigs
 
 
+def pingServer(url: str) -> Challenge:
+    payload = {
+        "method": "passID.ping",
+        "params": { 
+            "ping" : int.from_bytes(os.urandom(4), 'big')
+        },
+        "jsonrpc": "2.0",
+        "id": 0,
+    }
+
+    response = requests.post(
+        url, data=json.dumps(payload), headers=headers).json()
+    if "error" in response:
+        raise Exception(response['error'])
+    return response['result']['pong']
+
 def requestChallenge(url: str) -> Challenge:
     payload = {
         "method": "passID.getChallenge",
@@ -105,6 +121,10 @@ def main():
 
 
     try:
+        print("Pinging server ...")
+        pong = pingServer(url)
+        print("Pong: {}\n".format(pong))
+
         print("Requesting challenge from server ...")
         c = requestChallenge(url)
         print("Server returned challenge: {}\n".format(c.hex()))
