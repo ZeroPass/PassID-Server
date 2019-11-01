@@ -1,5 +1,6 @@
 import base64
 from datetime import datetime
+from math import log
 from typing import cast, Union
 import os
 
@@ -7,20 +8,29 @@ from cryptography.hazmat.primitives.hashes import Hash, SHA512_256
 from cryptography.hazmat.backends import default_backend
 
 
-class CID(str):
+
+class CID(int):
     """ Represents challenge id """
 
-    def __new__(cls, cid: Union[str, bytes]) -> "CID":
-        if isinstance(cid, str):
-            if len(cid) != 8:
-                ValueError("cid string wrong size")
+    def __new__(cls, cid: Union[int, bytes]) -> "CID":
+        if isinstance(cid, int):
+            if cid > 0xFFFFFFFF:
+                ValueError("cid integer too big")
         elif isinstance(cid, bytes):
             if len(cid) < 4:
                 ValueError("cid bytes too small")
-            cid = cid[0:4].hex()
+            cid = int.from_bytes(cid[0:4], 'big')
         else:
             raise ValueError("invalid cid type")
         return cast(CID, super().__new__(cls, cid))  # type: ignore  # https://github.com/python/typeshed/issues/2630  # noqa: E501
+
+    def hex(self):
+        return hex(self)
+
+    @classmethod
+    def fromhex(cls, hexCid: str) -> "CID":
+        assert isinstance(hexCid, str)
+        return cls(int(hexCid, 16))
 
 
 class ChallengeError(Exception):

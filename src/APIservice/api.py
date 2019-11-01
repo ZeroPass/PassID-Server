@@ -57,7 +57,7 @@ class PassIdApiServer:
         except Exception as e:
             return self._handle_exception(e)
 
-    def register(self, dg15: str, sod: str, cid: str, csigs: List[str], dg14: str = None) -> dict:
+    def register(self, dg15: str, sod: str, cid: proto.CID, csigs: List[str], dg14: str = None) -> dict:
         """ 
         Register new user. It returns back to the client userId which is publicKey address,
         session key and session expiration time.
@@ -77,7 +77,6 @@ class PassIdApiServer:
             self._log.debug(":register(): Got register request")
             dg15  = try_deser(lambda: ef.DG15.load(b64decode(dg15)))
             sod   = try_deser(lambda: ef.SOD.load(b64decode(sod)))
-            cid   = try_deser(lambda: proto.CID(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
             if dg14 is not None:
                 dg14 = try_deser(lambda: ef.DG14.load(b64decode(dg14)))
@@ -90,7 +89,7 @@ class PassIdApiServer:
             return self._handle_exception(e)
 
 
-    def login(self, uid: str, cid: str, csigs: List[str]) -> dict:
+    def login(self, uid: str, cid: proto.CID, csigs: List[str]) -> dict:
         """ 
         It returns back session key and session expiration time.
 
@@ -105,7 +104,6 @@ class PassIdApiServer:
         try:
             self._log.debug(":login(): Got login request uid={}".format(uid))
             uid   = try_deser(lambda: proto.UserId.fromBase64(uid))
-            cid   = try_deser(lambda: proto.CID(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
 
             sk, set = self._proto.login(uid, cid, csigs)

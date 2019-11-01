@@ -208,7 +208,6 @@ class MemoryDB(StorageAPI):
         self._d['proto_challenges'][challenge.id] = (challenge, timedate)
 
     def deleteChallenge(self, cid: CID) -> None:
-        assert isinstance(cid, CID)
         if cid in self._d['proto_challenges']:
             del self._d['proto_challenges'][cid]
 
