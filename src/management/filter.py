@@ -15,7 +15,7 @@ from database.storage.x509Storage import readFromDB_DSC_issuer_serialNumber, \
                                         readFromDB_DSC_authorityKey, \
                                         readFromDB_DSC_issuer, \
                                         deleteFromDB_DSC, \
-                                        deleteFromDB_CSCA, \
+                                        deleteFromDB_CSCA
 
 from pymrtd.pki.crl import CertificateRevocationList
 
