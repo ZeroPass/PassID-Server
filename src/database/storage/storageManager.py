@@ -6,7 +6,7 @@
 '''
 
 import sqlalchemy
-from sqlalchemy import Table, Column, Integer, String, DateTime, MetaData, LargeBinary, Boolean
+from sqlalchemy import Table, Column, Integer, BigInteger, String, DateTime, MetaData, LargeBinary, Boolean
 from sqlalchemy.orm import mapper, sessionmaker
 from sqlalchemy.sql import func
 
@@ -33,23 +33,27 @@ certificateRevocationListDB = Table('certificateRevocationList', metadata,
 documentSignerCertificate = Table('documentSignerCertificate', metadata,
                             Column('id', Integer, primary_key=True),
                             Column('object', LargeBinary),
-                            Column('issuerCountry', String),
+                            Column('issuer', String),
+                            Column('serialNumber', String),
                             Column('fingerprint', String),
                             Column('thisUpdate', DateTime),
                             Column('nextUpdate', DateTime),
-                            Column('subjectKey', String),
-                            Column('authorityKey', String)
+                            Column('subject', String),
+                            Column('subjectKey', LargeBinary),
+                            Column('authorityKey', LargeBinary)
                             )
 
 cscaCertificate = Table('CSCACertificate', metadata,
                             Column('id', Integer, primary_key=True),
                             Column('object', LargeBinary),
-                            Column('issuerCountry', String),
+                            Column('issuer', String),
+                            Column('serialNumber', String),
                             Column('fingerprint', String),
                             Column('thisUpdate', DateTime),
                             Column('nextUpdate', DateTime),
-                            Column('subjectKey', String),
-                            Column('authorityKey', String)
+                            Column('subject', String),
+                            Column('subjectKey', LargeBinary),
+                            Column('authorityKey', LargeBinary)
                             )
 
 challenge = Table('userChallenge', metadata,

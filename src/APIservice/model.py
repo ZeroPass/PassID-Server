@@ -14,7 +14,7 @@
 
 from werkzeug.wrappers import Request, Response
 from werkzeug.serving import run_simple
-
+import sys
 from database.storage.storageManager import Connection
 
 from jsonrpc import JSONRPCResponseManager, dispatcher
@@ -127,15 +127,15 @@ def login(self, challengeId: str, signature: str, publicKey: str) -> bool:
         return {"success": 0, "error:": 400, "detail": e}
 
 
-class Application:
-    """API server"""
+#class Application:
+#    """API server"""
 
-    @Request.application
-    def createCalls(self, request):
-        """Create API calls"""
-        response = JSONRPCResponseManager.handle(
-            request.data, dispatcher)
-        return Response(response.json, mimetype='application/json')
+@Request.application
+def createCalls(request):
+    """Create API calls"""
+    response = JSONRPCResponseManager.handle(
+        request.data, dispatcher)
+    return Response(response.json, mimetype='application/json')
 
 
 def test():
@@ -155,3 +155,11 @@ def test():
         if key == "id":
             result = login("", value, "signature", publicKey)
             print(result)
+
+def main():
+    run_simple("localhost", 8080, createCalls)
+    #Application()
+
+
+if __name__ == "__main__":
+    main()

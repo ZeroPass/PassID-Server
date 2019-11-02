@@ -10,7 +10,7 @@ import json
 
 
 def main():
-    url = "http://localhost:4000/jsonrpc"
+    url = "http://localhost:8080/jsonrpc"
     headers = {'content-type': 'application/json'}
 
     # Example echo method

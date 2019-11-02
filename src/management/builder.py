@@ -9,16 +9,21 @@ from ldif3 import LDIFParser
 from asn1crypto import crl, x509
 import re
 
+from settings import *
+
 from pymrtd.pki.crl import CertificateRevocationList
 from pymrtd.pki.x509 import DocumentSignerCertificate, Certificate, CscaCertificate, MasterListSignerCertificate
 
-from database.storage.certificateRevocationListStorage import writeToDB_CRL, readFromDB_CRL
-from database.storage.x509Storage import writeToDB_DSC, readFromDB_DSC
+from database.storage.certificateRevocationListStorage import CertificateRevocationListStorageError, writeToDB_CRL, readFromDB_CRL
+from database.storage.x509Storage import writeToDB_CSCA, writeToDB_DSC
+
+from management.filter import Filter
 
 from typing import Dict
+from datetime import datetime
 
 
-from pymrtd import ef
+#from pymrtd import ef
 from pymrtd.pki.ml import CscaMasterList
 from database.storage.storageManager import Connection
 
@@ -42,6 +47,9 @@ def get_issuer_cert(issued_cert: Certificate, root_certs: Dict[bytes, Certificat
 
     return None
 
+class BuilderError(Exception):
+    pass
+
 class Builder:
     """Building database structures and connections between certificates"""
 
@@ -49,7 +57,8 @@ class Builder:
         """CSCAfile and dscCrlFIle need to be in ldif format - downloaded from ICAO website"""
         conn = Connection(config["database"]["user"], config["database"]["pass"], config["database"]["db"])
         #self.parseDscCrlFile(dscCrlFile, conn)
-        self.parseCSCAFile(cscaFile, conn)
+        #self.parseCSCAFile(cscaFile, conn)
+        self.processCRL(conn)
 
     def parseDscCrlFile(self, dscCrlFile, connection: Connection):
         """Parsing DSC/CRL file"""
@@ -74,14 +83,33 @@ class Builder:
                 writeToDB_CRL(revocationList, countryCode, connection)
 
 
+    def verifyCSCAandWrite(self, csca: CscaCertificate, issuingCert: CscaCertificate, connection: Connection):
+        try:
+            #is CSCA still valid?
+            if not csca.isValidOn(datetime.utcnow()):
+                raise Exception()
+
+            #is signature of CSCA correct?
+            csca.verify(issuingCert)
+
+            #write to database
+            writeToDB_CSCA(csca, connection)
+
+        except Exception as e:
+            logger.error("Certificate is not valid anymore or verification failed.")
     def parseCSCAFile(self, CSCAFile, connection: Connection):
         """Parsing CSCA file"""
         parser = LDIFParser(CSCAFile)
         for dn, entry in parser.parse():
             if 'CscaMasterListData' in entry:
-                masterList = CscaMasterList(*entry['CscaMasterListData'])
-                #verify masterlist - if failed it returns exception
-                masterList.verify()
+                ml = CscaMasterList()
+                masterList = ml.load(*entry['CscaMasterListData'])
+                try:
+                    # verify masterlist - if failed it returns exception
+                    masterList.verify()
+                except Exception as e:
+                    logger.error("Integrity verification failed for master list issued by {}."
+                                  .format(masterList.signerCertificates[0].subject.native['country_name']))
 
                 cscas = {}
                 skipped_cscas = []
@@ -97,17 +125,53 @@ class Builder:
                     else:
                         issuing_cert = csca
 
-                    verify_and_write_csca(csca, issuing_cert, out_dir)
+                    self.verifyCSCAandWrite(csca, issuing_cert, connection)
 
                 for csca in skipped_cscas:
                     issuer_cert = get_issuer_cert(csca, cscas)
                     if issuer_cert is None:
-                        debug.("Could not verify signature of CSCA C={} SerNo={}. Issuing CSCA not found!"
-                                      .format(csca.subject.native['country_name'], format_cert_sn(csca)))
-                        with get_ofile_for_csca(csca, out_dir.joinpath('unverified')) as f:
-                            f.write(csca.dump())
+                        logger.error("Could not verify signature of CSCA C={} SerNo={}. Issuing CSCA not found! The CSCA is skipped and not stored in database."
+                                      .format(csca.subject.native['country_name'], hex(csca.serial_number).rstrip("L").lstrip("0x")))
                     else:
-                        verify_and_write_csca(csca, issuer_cert, out_dir)
+                        self.verifyCSCAandWrite(csca, issuer_cert, connection)
 
-        ml = CscaMasterList(CSCAFile)
-        r = 9
+                    # verify master list signer certificates
+                for mlsig_cert in masterList.signerCertificates:
+                    issuer_cert = get_issuer_cert(mlsig_cert, cscas)
+                    if issuer_cert is None:
+                        logger.info(
+                            "Could not verify signature of master list signer certificate. Issuing CSCA not found! [C={} Ml-Sig-SerNo={}]".format(
+                                mlsig_cert.subject.native['country_name'], hex(mlsig_cert.serial_number).rstrip("L").lstrip("0x")))
+                    else:
+                        try:
+                            mlsig_cert.verify(issuer_cert)
+                        except Exception as e:
+                            logger.info(
+                                "Failed to verify master list signer C={} Ml-Sig-SerNo={}\n\treason: {}".format(
+                                    mlsig_cert.subject.native['country_name'], hex(mlsig_cert.serial_number).rstrip("L").lstrip("0x"), str(e)))
+
+
+    #gledam subject key, ce ga ni gledam issucer in serial key
+    def iterateCRL(self, crl: CertificateRevocationListStorageError, connection: Connection):
+        try:
+            #f = open("test.crl", "wb")
+            #r = crl.dump()
+            #f.write(r)
+            #f.close()
+            #for key in crl['tbs_cert_list']['revoked_certificates']:
+            Filter(crl, connection)
+        except Exception as e:
+            raise BuilderError("Error in iterateCRL function: " + e)
+
+
+    def processCRL(self, connection: Connection):
+        """Iterate through CRL and delete revocated certificates"""
+        try:
+            crlArray = readFromDB_CRL(connection)
+            for crl in crlArray:
+                self.iterateCRL(crl.getObject(), connection)
+
+        except CertificateRevocationListStorageError as e:
+            logger.error("Exception description:" + e)
+        except Exception as e:
+            raise Exception("Unknown error.")

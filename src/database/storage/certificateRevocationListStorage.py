@@ -47,15 +47,15 @@ def writeToDB_CRL(crl: CertificateRevocationList, issuerCountry: str, connection
         connection.getSession().commit()
 
     except Exception as e:
-        raise CertificateRevocationListStorageError("Problem with writing the object")
+        raise CertificateRevocationListStorageError("Problem with writing the object: " + e)
 
-def readFromDB_CRL(issuerCountry: str, connection: Connection) -> CertificateRevocationList:
+def readFromDB_CRL(connection: Connection) -> []:
     """Reading from database"""
     try:
-        logger.info("Reading CRL object from database. Country:" + issuerCountry)
-        connection.getSession().query(CertificateRevocationListStorage).count()
-        ter = connection.getSession().query(CertificateRevocationListStorage).all()[connection.getSession().query(CertificateRevocationListStorage).count()-1]
-        ter1 = ter.getObject()
+        logger.info("Reading CRL objects from database.")
+        if connection.getSession().query(CertificateRevocationListStorage).count() > 0:
+            return connection.getSession().query(CertificateRevocationListStorage).all()
+        raise CertificateRevocationListStorageError("There is no CRL in database.")
 
     except Exception as e:
-        raise CertificateRevocationListStorageError("Problem with writing the object")
+        raise CertificateRevocationListStorageError("Problem with reading the object: " + e)
