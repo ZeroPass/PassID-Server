@@ -95,6 +95,7 @@ class DatabaseAPI(StorageAPI):
 
     def __init__(self, user: str, pwd: str, db: str):
         """Creating connection to the database and initialization of main strucutres"""
+        self._log = logging.getLogger(DatabaseAPI.__name__)
         self._dbc = Connection(user, pwd, db)
 
     def getChallenge(self, cid: CID) -> Tuple[Challenge, datetime]:
@@ -164,7 +165,8 @@ class DatabaseAPI(StorageAPI):
         assert isinstance(uid, UserId)
         items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
         if len(items) == 0:
-            raise DatabaseAPIError("DatabaseAPI.getAccountExpiry; User not found.")
+            self._log.ddebug(":getAccountExpiry(): Account not found")
+            raise DatabaseAPIError("User not found.")
 
         assert isinstance(items[0].getValidUntil(), datetime)
         return items[0].getValidUntil()
@@ -176,7 +178,8 @@ class DatabaseAPI(StorageAPI):
         assert isinstance(uid, UserId)
         items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
         if len(items) == 0:
-            raise DatabaseAPIError("DatabaseAPI.getAccountExpiry; User not found.")
+            self._log.ddebug(":getAccountCredentials(): Account not found")
+            raise DatabaseAPIError("User not found.")
         return (items[0].getAAPublicKey(), items[0].getSigAlgo(), items[0].getValidUntil())
 
     #def getValidUntil(self, SOD):
