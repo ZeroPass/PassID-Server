@@ -166,7 +166,7 @@ class DatabaseAPI(StorageAPI):
         items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
         if len(items) == 0:
             self._log.ddebug(":getAccountExpiry(): Account not found")
-            raise DatabaseAPIError("User not found.")
+            raise SeEntryNotFound("Account not found.")
 
         assert isinstance(items[0].getValidUntil(), datetime)
         return items[0].getValidUntil()
@@ -179,7 +179,7 @@ class DatabaseAPI(StorageAPI):
         items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
         if len(items) == 0:
             self._log.ddebug(":getAccountCredentials(): Account not found")
-            raise DatabaseAPIError("Account not found.")
+            raise SeEntryNotFound("Account not found.")
         return (items[0].getAAPublicKey(), items[0].getSigAlgo(), items[0].getValidUntil())
 
     #def getValidUntil(self, SOD):
