@@ -79,7 +79,7 @@ class PassIdApiServer:
             self._log.debug(":getChallenge(): Got request for challenge")
             c = self._proto.createNewChallenge()
             self._log.debug(":getChallenge(): Returning challenge={}".format(c.hex()))
-            return {"cid": c.id, "challenge": c.toBase64() }
+            return { "challenge": c.toBase64() }
         except Exception as e:
             return self._handle_exception(e)
 
