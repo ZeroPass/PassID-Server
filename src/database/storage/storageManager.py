@@ -64,10 +64,10 @@ challenge = Table('userChallenge', metadata,
 
 account = Table('account', metadata,
                             Column('uid', String, primary_key=True), # uid = UserId
-                            Column('aaPublicKey', String, nullable=False),
-                            Column('sigAlgo', String, nullable=True),
+                            Column('aaPublicKey', LargeBinary, nullable=False),
+                            Column('sigAlgo', LargeBinary, nullable=True),
                             Column('validUntil', DateTime),
-                            Column('sod', String, nullable=False),
+                            Column('sod', LargeBinary, nullable=False),
                             Column('isValid', Boolean)
                             )
 

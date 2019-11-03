@@ -30,12 +30,12 @@ class AccountStorage(object):
     _SOD = None
     _isValid = None
 
-    def __init__(self, uid: str, aaPublicKey: str, sigAlgo: Union[str, None], validUntil: datetime, sod: str):
+    def __init__(self, uid: str, aaPublicKey: bytes, sigAlgo: Union[str, None], validUntil: datetime, sod: str):
         """Initialization object"""
         assert isinstance(uid, str)
-        assert isinstance(aaPublicKey, str)
-        assert isinstance(sigAlgo, (str, type(None)))
-        assert isinstance(sod, str)
+        assert isinstance(aaPublicKey, bytes)
+        assert isinstance(sigAlgo, (bytes, type(None)))
+        assert isinstance(sod, bytes)
 
         self.uid         = uid
         self.aaPublicKey = aaPublicKey
@@ -53,16 +53,16 @@ class AccountStorage(object):
         return str2uid(self.uid)
 
     def getAAPublicKey(self) -> AAPublicKey:
-        return AAPublicKey.load(b64decode(self.aaPublicKey))
+        return AAPublicKey.load(self.aaPublicKey)
 
     def getSigAlgo(self) -> Union[SignatureAlgorithm, None]:
         if self.sigAlgo is None:
             return None
-        return SignatureAlgorithm.load(b64decode(self.sigAlgo))
+        return SignatureAlgorithm.load(self.sigAlgo)
 
     def getSOD(self) -> ef.SOD:
         """Return SOD from object"""
-        return ef.SOD.load(b64decode(self.sod))
+        return ef.SOD.load(self.sod)
 
     def getIsValid(self) -> bool:
         """Return isValid from object"""
@@ -73,14 +73,14 @@ class AccountStorage(object):
         return self.validUntil
 
 
-def writeToDB_account(publicKey: AAPublicKey, sigAlog: Union[SignatureAlgorithm, None], validUntil: datetime, sod: ef.SOD, connection: Connection) -> UserId:
+def writeToDB_account(publicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], validUntil: datetime, sod: ef.SOD, connection: Connection) -> UserId:
     """Write to database with ORM"""
     try:
         assert isinstance(publicKey, AAPublicKey)
-        assert isinstance(sigAlog, (SignatureAlgorithm, type(None)))
+        assert isinstance(sigAlgo, (SignatureAlgorithm, type(None)))
         assert isinstance(sod, ef.SOD)
 
-        if sigAlog is not None:
+        if sigAlgo is not None:
             sigAlog = b64encode(sigAlgo.dump())
 
         uid  = UserId.fromAAPublicKey(publicKey)

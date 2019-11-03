@@ -47,6 +47,20 @@ def requestChallenge(url: str) -> Challenge:
         "method": "passID.getChallenge",
         "params": [],
         "jsonrpc": "2.0",
+        "id": 8,
+    }
+
+    response = requests.post(
+        url, data=json.dumps(payload), headers=headers).json()
+    if "error" in response:
+        raise Exception(response['error'])
+    return Challenge.fromBase64(response['result']['challenge'])
+
+def addChallenge(url: str) -> Challenge:
+    payload = {
+        "method": "passID.getChallenge",
+        "params": [],
+        "jsonrpc": "2.0",
         "id": 0,
     }
 
@@ -122,26 +136,27 @@ def main():
 
 
     try:
-        print("Pinging server ...")
+        """print("Pinging server ...")
         pong = pingServer(url)
         print("Pong: {}\n".format(pong))
-
-        print("Requesting challenge from server ...")
+        """
+        #print("Requesting challenge from server ...")
         c = requestChallenge(url)
         print("Server returned challenge: {}\n".format(c.hex()))
-        assert c == sigc
+        #assert c == sigc
 
         print("Registering new user ...")
+        #"""sigc.id"""
         uid, sk, et = requestRegister(url, dg15, sod, sigc.id, csigs)
         assert uid == tvUid
-        print("User was successfully registered!\n  uid={}\n  session_key={}\n  session_expires={}\n".format(uid.hex(), sk.hex(), et))
+        #print("User was successfully registered!\n  uid={}\n  session_key={}\n  session_expires={}\n".format(uid.hex(), sk.hex(), et))
 
-
+        """
         print("Requesting new challenge from server for login ...")
         c = requestChallenge(url)
         print("Server returned challenge: {}\n".format(c.hex()))
         assert c == sigc
-
+        """
         print("Logging in ...")
         sk, et = requestLogin(url, uid, c.id, csigs)
         print("Login succeed!\n  uid={}\n  session_key={}\n  session_expires={}\n".format(uid.hex(), sk.hex(), et))

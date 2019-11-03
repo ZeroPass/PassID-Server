@@ -20,7 +20,7 @@ from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
 from database.storage.storageManager import Connection
 
 from database.storage.challengeStorage import * 
-from database.storage.accountStorage import writeToDB_account, readFromDBwithUid_account, AccountStorageError
+from database.storage.accountStorage import AccountStorage, writeToDB_account, readFromDBwithUid_account, AccountStorageError
 
 
 class StorageAPIError(Exception):
@@ -107,10 +107,11 @@ class DatabaseAPI(StorageAPI):
         :raises:
             DatabaseAPIError: If challenge is not found
         """
+        assert isinstance(cid, CID)
 
         result = self._dbc.getSession() \
            .query(ChallengeStorage) \
-           .filter(ChallengeStorage.id == cid) \
+           .filter(ChallengeStorage.id == str(cid)) \
            .all()
         
         if len(result) == 0:
@@ -122,39 +123,61 @@ class DatabaseAPI(StorageAPI):
         return (c, t)
 
     def addChallenge(self, challenge: Challenge, timedate: datetime) -> None:
-        # TODO: check that challenge doesn't already exist
+        assert isinstance(challenge, Challenge)
+        assert isinstance(timedate, datetime)
         cs = ChallengeStorage.fromChallenge(challenge, timedate)
+
+        if self._dbc.getSession().query(ChallengeStorage).filter(ChallengeStorage.id == str(challenge.id)).count() > 0:
+            raise DatabaseAPIError("Challenge already exists")
+
         self._dbc.getSession().add(cs)
         self._dbc.getSession().commit()
 
     def deleteChallenge(self, cid: CID) -> None:
-        # TODO: Implement
-        #self._dbc.getSession().delete(cid)
-        raise NotImplemented("DatabaseAPI.deleteChallenge not implemented")
+        assert isinstance(cid, CID)
+        self._dbc.getSession().query(ChallengeStorage).filter(ChallengeStorage.id == str(cid)).delete()
+        self._dbc.getSession().commit()
 
     def accountExists(self, uid: UserId) -> bool:
-        # TODO: Implement
-        raise NotImplemented("DatabaseAPI.accountExists not implemented")
+        assert isinstance(uid, UserId)
+        return True if self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).count() > 0 else False
 
     def addOrUpdateAccount(self, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], sod: ef.SOD, validUntil: datetime) -> UserId:
-        # TODO: Implement
-        raise NotImplemented("DatabaseAPI.addOrUpdateAccount not implemented")
+        #    def __init__(self, uid: str, aaPublicKey: str, sigAlgo: Union[str, None], validUntil: datetime, sod: str):
+
+        sigAlgoDump = None
+        if sigAlgo is not None:
+            sigAlgoDump = sigAlgo.dump()
+
+        uid = UserId.fromAAPublicKey(aaPublicKey)
+        accS = AccountStorage(str(uid), aaPublicKey.dump(), sigAlgoDump, validUntil, sod.dump())
+
+        self._dbc.getSession().add(accS)
+        self._dbc.getSession().commit()
 
     def deleteAccount(self, uid: UserId) -> None:
-        # TODO: Implement
-        raise NotImplemented("DatabaseAPI.deleteAccount not implemented")
+        assert isinstance(uid, UserId)
+        self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).delete()
+        self._dbc.getSession().commit()
 
     def getAccountExpiry(self, uid: UserId) -> datetime:
-        # TODO: Implement
-        raise NotImplemented("DatabaseAPI.getAccountExpiry not implemented")
+        assert isinstance(uid, UserId)
+        items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
+        if len(items) == 0:
+            raise DatabaseAPIError("DatabaseAPI.getAccountExpiry; User not found.")
 
-    def getAccuountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
+        assert isinstance(items[0].getValidUntil(), datetime)
+        return items[0].getValidUntil()
+
+    def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
         """
         Returns user credentials needed to verify user's authentication via challenge.
         """
-        # TODO: Implement
-        raise NotImplemented("DatabaseAPI.getUserCredentials not implemented")
-
+        assert isinstance(uid, UserId)
+        items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
+        if len(items) == 0:
+            raise DatabaseAPIError("DatabaseAPI.getAccountExpiry; User not found.")
+        return (items[0].getAAPublicKey(), items[0].getSigAlgo(), items[0].getValidUntil())
 
     #def getValidUntil(self, SOD):
     #    """Return datetime certificate is valid"""

@@ -79,12 +79,12 @@ class PassIdApiServer:
             self._log.debug(":getChallenge(): Got request for challenge")
             c = self._proto.createNewChallenge()
             self._log.debug(":getChallenge(): Returning challenge={}".format(c.hex()))
-            return { "challenge": c.toBase64() }
+            return {"cid": c.id, "challenge": c.toBase64() }
         except Exception as e:
             return self._handle_exception(e)
 
     # API: passID.register
-    def register(self, dg15: str, sod: str, cid: proto.CID, csigs: List[str], dg14: str = None) -> dict:
+    def register(self, dg15: str, sod: str, cid: str, csigs: List[str], dg14: str = None) -> dict:
         """ 
         Register new user. It returns back to the client userId which is publicKey address,
         session key and session expiration time.
@@ -108,7 +108,7 @@ class PassIdApiServer:
             if dg14 is not None:
                 dg14 = try_deser(lambda: ef.DG14.load(b64decode(dg14)))
 
-            uid, sk, set = self._proto.register(dg15, sod, cid, csigs, dg14)
+            uid, sk, set = self._proto.register(dg15, sod, proto.CID(cid), csigs, dg14)
             self._log.info(":register(): New user has been registered successfully. uid={} session expires: {}".format(uid2str(uid), set))
             print("expires", set.timestamp())
             return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": int(set.timestamp()) }

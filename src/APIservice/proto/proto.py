@@ -65,7 +65,6 @@ class PassIdProto:
         :param dg14: (Optional) eMRTD DataGroup file 14
         :return: Tuple of user id, session key and session expiration time
         """
-
         # 1. Verify account doesn't exist yet
         aaPubKey = dg15.aaPublicKey
         uid      = UserId.fromAAPublicKey(aaPubKey)

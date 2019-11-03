@@ -38,7 +38,8 @@ def main():
     )
 
 
-    mdb  = proto.MemoryDB()
+    #mdb  = proto.MemoryDB()
+    mdb = proto.DatabaseAPI#(test_configs.database.user, test_configs.database.pwd, test_configs.database.db)
     sapi = TestApiServer(mdb, test_configs)
     sapi.start()
 
