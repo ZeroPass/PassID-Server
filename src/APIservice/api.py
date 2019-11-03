@@ -102,13 +102,14 @@ class PassIdApiServer:
 
         try:
             self._log.debug(":register(): Got register request")
-            dg15  = try_deser(lambda: ef.DG15.load(b64decode(dg15)))
-            sod   = try_deser(lambda: ef.SOD.load(b64decode(sod)))
+            dg15 = try_deser(lambda: ef.DG15.load(b64decode(dg15)))
+            sod  = try_deser(lambda: ef.SOD.load(b64decode(sod)))
+            cid  = try_deser(lambda: proto.CID(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
             if dg14 is not None:
                 dg14 = try_deser(lambda: ef.DG14.load(b64decode(dg14)))
 
-            uid, sk, set = self._proto.register(dg15, sod, proto.CID(cid), csigs, dg14)
+            uid, sk, set = self._proto.register(dg15, sod, cid, csigs, dg14)
             self._log.info(":register(): New user has been registered successfully. uid={} session expires: {}".format(uid2str(uid), set))
             print("expires", set.timestamp())
             return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
@@ -116,7 +117,7 @@ class PassIdApiServer:
             return self._handle_exception(e)
 
     # API: passID.login
-    def login(self, uid: str, cid: proto.CID, csigs: List[str]) -> dict:
+    def login(self, uid: str, cid: str, csigs: List[str]) -> dict:
         """ 
         It returns back session key and session expiration time.
 
@@ -130,7 +131,8 @@ class PassIdApiServer:
 
         try:
             self._log.debug(":login(): Got login request uid={}".format(uid))
-            uid   = try_deser(lambda: proto.UserId.fromBase64(uid))
+            uid = try_deser(lambda: proto.UserId.fromBase64(uid))
+            cid = try_deser(lambda: proto.CID(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
 
             sk, set = self._proto.login(uid, cid, csigs)
