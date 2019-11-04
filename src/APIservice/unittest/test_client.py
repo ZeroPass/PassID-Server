@@ -62,7 +62,7 @@ def requestRegister(url: str, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[
         "params": {
             "dg15"  : b64encode(dg15.dump()),
             "sod"   : b64encode(sod.dump()),
-            "cid"   : cid,
+            "cid"   : cid.hex(),
             "csigs" : bsigs_to_b64sigs(csigs),
          },
         "jsonrpc": "2.0",
@@ -85,7 +85,7 @@ def requestLogin(url: str, uid: UserId, cid: CID, csigs: List[bytes]):
         "method": "passID.login",
         "params": {
             "uid"  : uid.toBase64(),
-            "cid"   : cid,
+            "cid"   : cid.hex(),
             "csigs" : bsigs_to_b64sigs(csigs),
          },
         "jsonrpc": "2.0",

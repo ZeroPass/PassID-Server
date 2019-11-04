@@ -104,7 +104,7 @@ class PassIdApiServer:
             self._log.debug(":register(): Got register request")
             dg15 = try_deser(lambda: ef.DG15.load(b64decode(dg15)))
             sod  = try_deser(lambda: ef.SOD.load(b64decode(sod)))
-            cid  = try_deser(lambda: proto.CID(cid))
+            cid  = try_deser(lambda: proto.CID.fromhex(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
             if dg14 is not None:
                 dg14 = try_deser(lambda: ef.DG14.load(b64decode(dg14)))
@@ -132,7 +132,7 @@ class PassIdApiServer:
         try:
             self._log.debug(":login(): Got login request uid={}".format(uid))
             uid = try_deser(lambda: proto.UserId.fromBase64(uid))
-            cid = try_deser(lambda: proto.CID(cid))
+            cid = try_deser(lambda: proto.CID.fromhex(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
 
             sk, set = self._proto.login(uid, cid, csigs)
