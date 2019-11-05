@@ -79,7 +79,7 @@ def main():
         ctx.options | ssl.OP_SINGLE_ECDH_USE | ssl.OP_NO_TLSv1_2 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_TLSv1 | ssl.OP_NO_SSLv3 | ssl.OP_NO_SSLv2
         ctx.load_cert_chain(args['cert'], args['key'])
 
-    configs = Config( 
+    config = Config( 
         database = DbConfig(
             user = args['db_user'],
             pwd  = args['db_pwd'],
@@ -96,12 +96,12 @@ def main():
     if args['mdb']:
         db  = proto.MemoryDB()
     else:
-        db = proto.DatabaseAPI(configs.database.user, configs.database.pwd, configs.database.db)
+        db = proto.DatabaseAPI(config.database.user, config.database.pwd, config.database.db)
 
     if args["dev"]:
-        sapi = DevApiServer(db, configs)
+        sapi = DevApiServer(db, config)
     else:
-        sapi = PassIdApiServer(deb, config)
+        sapi = PassIdApiServer(db, config)
 
     sapi.start()
 
