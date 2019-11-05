@@ -141,7 +141,11 @@ class WebApp(http.server.BaseHTTPRequestHandler):
         else:
             fnDSC_CRL = os.path.join(path, "DSC_CRL.ldif")
             fnMasterList = os.path.join(path, "MasterList.ldif")
-            parse = Builder(fnDSC_CRL, fnMasterList)
+
+            fnDSC_CRL_open = open(fnDSC_CRL, 'rb')
+            fnMasterList_open = open(fnMasterList, 'rb')
+
+            Builder(fnMasterList_open, fnDSC_CRL_open)
             return (True, "File '%s' upload success!" % ",".join(uploaded_files))
 
     def send_head(self):
