@@ -25,7 +25,7 @@ from datetime import datetime
 
 #from pymrtd import ef
 from pymrtd.pki.ml import CscaMasterList
-from database.storage.storageManager import Connection
+from database.storage.storageManager import Connection, truncateAll
 
 from settings import config
 
@@ -56,9 +56,14 @@ class Builder:
     def __init__(self, cscaFile, dscCrlFile):
         """CSCAfile and dscCrlFIle need to be in ldif format - downloaded from ICAO website"""
         conn = Connection(config.database.user, config.database.pwd, config.database.db)
+        self.clearDatabase(conn)
         self.parseDscCrlFile(dscCrlFile, conn)
         self.parseCSCAFile(cscaFile, conn)
         self.processCRL(conn)
+
+    def clearDatabase(self, connection: Connection):
+        """Clear database"""
+        truncateAll(connection)
 
     def parseDscCrlFile(self, dscCrlFile, connection: Connection):
         """Parsing DSC/CRL file"""

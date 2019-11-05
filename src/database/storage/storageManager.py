@@ -134,3 +134,12 @@ class Connection:
 
         #creating tables
         Base.metadata.create_all(self.connectionObj, tables=[certificateRevocationListDB, documentSignerCertificate, cscaCertificate, challenge, account])
+
+
+def truncateAll(connection: Connection):
+    """Truncate all tables"""
+    try:
+        a =1
+        # TODOTruncate
+    except Exception as e:
+        raise IOError("Problem deleting object" + e)
