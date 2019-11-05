@@ -11,3 +11,5 @@
 venv37/
 
 venv/
+
+src/WebApp/uploadedFiles/

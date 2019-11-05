@@ -29,15 +29,4 @@ class Config(NamedTuple):
 
 
 
-#config = Config( 
-#    database = DbConfig(
-#        user = "",
 #        pwd  = "",
-#        db   = "icao"
-#    ),
-#    api_server = ServerConfig(
-#        host = "localhost",
-#        port = 8080
-#    ),
-#    challenge_ttl = 300 #5 minutes
-#)
