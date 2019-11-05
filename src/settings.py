@@ -6,6 +6,7 @@
 '''
 
 import logging
+import ssl
 from typing import NamedTuple 
 
 logging.basicConfig(level=logging.DEBUG) #waring, info, debug
@@ -19,6 +20,7 @@ class DbConfig(NamedTuple):
 class ServerConfig(NamedTuple):
     host: str
     port: int
+    ssl_ctx: ssl.SSLContext
 
 class Config(NamedTuple):
     database: DbConfig
@@ -27,15 +29,15 @@ class Config(NamedTuple):
 
 
 
-config = Config( 
-    database = DbConfig(
-        user = "",
-        pwd  = "",
-        db   = "icao"
-    ),
-    api_server = ServerConfig(
-        host = "localhost",
-        port = 8080
-    ),
-    challenge_ttl = 300 #5 minutes
-)
+#config = Config( 
+#    database = DbConfig(
+#        user = "",
+#        pwd  = "",
+#        db   = "icao"
+#    ),
+#    api_server = ServerConfig(
+#        host = "localhost",
+#        port = 8080
+#    ),
+#    challenge_ttl = 300 #5 minutes
+#)

@@ -50,7 +50,7 @@ class PassIdApiServer:
         add_api_meth(self.login)
 
     def start(self):
-            run_simple(self._conf.host, self._conf.port, self._create_calls)
+        run_simple(self._conf.host, self._conf.port, self._create_calls, ssl_context=self._conf.ssl_ctx, threaded=True)
 
 
 # RPC API methods
