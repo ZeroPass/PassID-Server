@@ -2,13 +2,15 @@ from datetime import datetime, timedelta
 import logging
 from typing import List, Tuple, Union
 
+#from management.main import CSCA
+from pymrtd.pki.x509 import DocumentSignerCertificate
 from .challenge import CID, Challenge
 from .db import StorageAPI
 from .session import SessionKey
 from .user import UserId
 
 from pymrtd import ef
-from pymrtd.pki import x509
+#from pymrtd.pki import x509
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
 
 
@@ -164,6 +166,7 @@ class PassIdProto:
         assert isinstance(dg15, ef.DG15)
 
         # TODO: get all needed certificates from database and verify trustchain from CSCA to SOD before verifying dg15 and dg14
+        self.validateCertificatePath(sod)
 
         if dg14 is not None and \
            not sod.ldsSecurityObject.contains(dg14):
@@ -171,6 +174,105 @@ class PassIdProto:
 
         if not sod.ldsSecurityObject.contains(dg15):
             raise PePreconditionFailed("Digest mismatch for file dg15")
+
+    def getDSCbyIsserAndSerialNumber(self, issuer: str, serialNumber: int, sodCertificates) -> ():
+        """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""
+        DSCinSod = None
+        DSCinDatabase = None
+        for item in sodCertificates:
+            if item.serial_number == serialNumber and item.issuer.human_friendly == issuer:
+                DSCinSod = item
+                break
+        #item not found in SOD file, try to find it in database
+        dbItem = self._db.getDSCbySerialNumber(issuer, str(serialNumber))
+        if len(dbItem)> 0:
+            DSCinDatabase = dbItem[0]
+        return (DSCinSod, DSCinDatabase)
+
+    def getDSCbySubjectKey(self, subjectKey: bytes, sodCertificates) -> []:
+        """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""
+        DSCinSod = None
+        DSCinDatabase = None
+        for item in sodCertificates:
+            if item.key_identifier == subjectKey:
+                DSCinSod = item
+                break
+        # item not found in SOD file, try to find it in database
+        dbItem = self._db.getDSCbySubjectKey(subjectKey)
+        if len(dbItem) > 0:
+            DSCinDatabase = dbItem[0]
+        return (DSCinSod, DSCinDatabase)
+
+    def getCSCAByIssuerAndSerialNumber(self, issuer: str, serialNumber: int,):
+        return self._db.getCSCAbySerialNumber(issuer, str(serialNumber))
+
+    def getCSCABySubjectKey(self, subjectKey: bytes):
+        return self._db.getCSCAbySubjectKey(subjectKey)
+
+    def DSCtoCSCAvalidate(self, dsc: DocumentSignerCertificate):
+        """Find CSCA and validate it"""
+        if dsc.isValidOn(datetime.utcnow()) == False:
+            raise PePreconditionFailed("DSC not valid anymore")
+
+        csca = self.getCSCAByIssuerAndSerialNumber(dsc.issuer.human_friendly, dsc.serial_number) + \
+               self.getCSCABySubjectKey(dsc.authorityKey)
+        if len(csca) == 0:
+            raise PePreconditionFailed("CSCA not found")
+
+        obj = csca[0].getObject()
+        # verify CSCA
+        dsc.verify(obj)
+
+    def validateCertificatePath(self, sod: ef.SOD):
+        """Verification of issuer certificate from SOD file"""
+        assert isinstance(sod, ef.SOD)
+
+        includedDSC = sod.dsCertificates
+
+        for sidx, signer in enumerate(sod.signers):
+            foundDSC = (None, None)
+            if signer.name == "issuer_and_serial_number":
+                #sni = signer['sid'].chosen
+                foundDSC = self.getDSCbyIsserAndSerialNumber(self.human_friendly(signer.native["issuer"]),
+                                                             signer.native["serial_number"], includedDSC)
+            elif signer.name == "subject_key_identifier":
+                keyid = signer.native
+                foundDSC = self.getDSCbySubjectKey(keyid, includedDSC)
+            else:
+                raise PePreconditionFailed("Unknown connection type to DSC ")
+
+            if foundDSC[0] == None and foundDSC[1] == None:
+                raise PePreconditionFailed("No DSC found")
+
+            if foundDSC[0] == None:
+                """no DSC found in SOD object, but found in database"""
+                self.DSCtoCSCAvalidate(foundDSC[1].getObject())
+                sod.verify(foundDSC[1].getObject())
+
+            elif foundDSC[1] == None:
+                """no DSC found in database, but found in SOD"""
+                self.DSCtoCSCAvalidate(foundDSC[0])
+                sod.verify()
+
+            else:
+                """ DSC found in SOD and database - same DSC"""
+                self.DSCtoCSCAvalidate(foundDSC[0])
+                sod.verify()
+
+
+
+    def human_friendly(self, issuer: {}):
+        """It returns friendly name of issuer Pattern follows format of asn1crypto library"""
+        finalStr = ""
+        #add common name
+        finalStr += "Common Name: " + issuer["common_name"]
+        #add organizational unit
+        finalStr += ", Organizational Unit: " + issuer["organizational_unit_name"]
+        #add organization
+        finalStr += ", Organization: " + issuer["organization_name"]
+        # add organization
+        finalStr += ", Country: " + issuer["country_name"]
+        return finalStr
 
     def _get_account_expiration(self, uid: UserId):
         """ Returns until the session is valid. """

@@ -55,9 +55,9 @@ class Builder:
 
     def __init__(self, cscaFile, dscCrlFile):
         """CSCAfile and dscCrlFIle need to be in ldif format - downloaded from ICAO website"""
-        conn = Connection(config["database"]["user"], config["database"]["pass"], config["database"]["db"])
-        #self.parseDscCrlFile(dscCrlFile, conn)
-        #self.parseCSCAFile(cscaFile, conn)
+        conn = Connection(config.database.user, config.database.pwd, config.database.db)
+        self.parseDscCrlFile(dscCrlFile, conn)
+        self.parseCSCAFile(cscaFile, conn)
         self.processCRL(conn)
 
     def parseDscCrlFile(self, dscCrlFile, connection: Connection):

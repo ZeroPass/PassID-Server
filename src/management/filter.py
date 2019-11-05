@@ -65,7 +65,6 @@ class Filter:
 
         dataDSC = readFromDB_DSC_issuer_serialNumber(issuer, serialNumber, connection)
         dataCSCA = readFromDB_CSCA_issuer_serialNumber(issuer, serialNumber, connection)
-        #dataCSCA = readFromDB_CSCA_last("", connection)
 
         lengthDSC = len(dataDSC)
         lengthCSCA = len(dataCSCA)

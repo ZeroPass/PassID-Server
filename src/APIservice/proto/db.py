@@ -21,7 +21,7 @@ from database.storage.storageManager import Connection
 
 from database.storage.challengeStorage import * 
 from database.storage.accountStorage import AccountStorage, writeToDB_account, readFromDBwithUid_account, AccountStorageError
-
+from database.storage.x509Storage import DocumentSignerCertificateStorage, CSCAStorage
 
 class StorageAPIError(Exception):
     pass
@@ -181,6 +181,32 @@ class DatabaseAPI(StorageAPI):
             self._log.ddebug(":getAccountCredentials(): Account not found")
             raise SeEntryNotFound("Account not found.")
         return (items[0].getAAPublicKey(), items[0].getSigAlgo(), items[0].getValidUntil())
+
+    #1.) issuer + serijska stevilka
+    #2.) subjeect key identifier
+
+    def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
+        """Get DSC"""
+        items = self._dbc.getSession().query(DocumentSignerCertificateStorage).filter(DocumentSignerCertificateStorage.issuer == issuer,
+                                                                                      DocumentSignerCertificateStorage.serialNumber == serialNumber).all()
+        return items
+
+    def getDSCbySubjectKey(self, subjectKey: bytes):
+        """Get DSC"""
+        items = self._dbc.getSession().query(DocumentSignerCertificateStorage).filter(DocumentSignerCertificateStorage.subjectKey == subjectKey).all()
+        return items
+
+    def getCSCAbySerialNumber(self, issuer: str, serialNumber: str):
+        """Get CSCA certificate"""
+        items = self._dbc.getSession().query(CSCAStorage).filter(CSCAStorage.issuer == issuer,
+                                                                 CSCAStorage.serialNumber == serialNumber).all()
+        return items
+
+    def getCSCAbySubjectKey(self, subjectKey: bytes):
+        """Get DSC"""
+        items = self._dbc.getSession().query(CSCAStorage).filter(CSCAStorage.subjectKey == subjectKey).all()
+        return items
+
 
     #def getValidUntil(self, SOD):
     #    """Return datetime certificate is valid"""
