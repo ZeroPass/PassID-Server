@@ -82,12 +82,26 @@ class StorageAPI(ABC):
         """
         pass
 
-    # eMRTD PKI methods
-    # TODO: implement
+    @abstractmethod
+    def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
+        """Get DSC"""
+        pass
+
+    @abstractmethod
+    def getDSCbySubjectKey(self, subjectKey: bytes):
+        """Get DSC"""
+        pass
+
+    @abstractmethod
+    def getCSCAbySerialNumber(self, issuer: str, serialNumber: str):
+        pass
+
+    @abstractmethod
+    def getCSCAbySubjectKey(self, subjectKey: bytes):
+        """Get CSCA"""
+        pass
 
 
-
-    
 class DatabaseAPIError(StorageAPIError):
     pass
 
@@ -239,7 +253,8 @@ class MemoryDB(StorageAPI):
         self._d = {
             'proto_challenges' : {},
             'accounts' : {},
-            'certificates' : {}
+            'cscas' : {},
+            'dscs' : {},
         }
 
     def getChallenge(self, cid: CID) -> Tuple[Challenge, datetime]:
@@ -301,3 +316,32 @@ class MemoryDB(StorageAPI):
             raise SeEntryNotFound("Account not found")
         accnt = self._d['accounts'][uid]
         return (accnt[0], accnt[1], accnt[3])
+
+
+    def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
+        """Get DSC"""
+        for dsc in self._d['dscs']:
+            if dsc.issuer.native == issuer and dsc.serialNumber == serialNumber:
+                return dsc
+        return None
+
+    def getDSCbySubjectKey(self, subjectKey: bytes):
+        """Get DSC"""
+        for dsc in self._d['dscs']:
+            if dsc.subjectKey == subjectKey:
+                return dsc
+        return None
+
+    def getCSCAbySerialNumber(self, issuer: str, serialNumber: str):
+        """Get CSCA"""
+        for csca in self._d['cscas']:
+            if csca.issuer.native == issuer and csca.serialNumber == serialNumber:
+                return csca
+        return None
+
+    def getCSCAbySubjectKey(self, subjectKey: bytes):
+        """Get CSCA"""
+        for csca in self._d['cscas']:
+            if csca.subjectKey == subjectKey:
+                return dsc
+        return None
