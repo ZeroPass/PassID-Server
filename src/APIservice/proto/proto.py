@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+
 import logging
 from typing import List, Tuple, Union
 
@@ -139,9 +140,12 @@ class PassIdProto:
 
         # Verify challenge expiration time
         def get_past(datetime: datetime):
+            datetime = datetime.replace(tzinfo=None)
             return datetime - timedelta(seconds=self.cttl)
 
-        if self._has_expired(t, get_past(datetime.utcnow())):
+        ret = get_past(datetime.utcnow())
+        t = t.replace(tzinfo=None)
+        if self._has_expired(t, ret):
             self._db.deleteChallenge(cid)
             raise PeChallengeExpired("Challenge has expired")
 
