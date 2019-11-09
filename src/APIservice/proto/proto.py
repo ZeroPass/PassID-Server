@@ -29,7 +29,7 @@ class PeChallengeExpired(ProtoError):
 
 class PeCredentialsExpired(ProtoError):
     """ Challenge has expired """
-    code = 401
+    code = 498
 
 class PePreconditionFailed(ProtoError):
     """ One or more condition in verification of emrtd PKI truschain failed """
@@ -169,15 +169,16 @@ class PassIdProto:
         assert isinstance(dg14, (ef.DG14, type(None)))
         assert isinstance(dg15, ef.DG15)
 
-        # TODO: get all needed certificates from database and verify trustchain from CSCA to SOD before verifying dg15 and dg14
-        self.validateCertificatePath(sod)
-
         if dg14 is not None and \
            not sod.ldsSecurityObject.contains(dg14):
-            raise PePreconditionFailed("Digest mismatch for file dg14")
+            raise PePreconditionFailed("Invalid DG14 file")
 
         if not sod.ldsSecurityObject.contains(dg15):
-            raise PePreconditionFailed("Digest mismatch for file dg15")
+            raise PePreconditionFailed("Invalid DG15 file")
+
+        self.validateCertificatePath(sod)
+
+
 
     def getDSCbyIsserAndSerialNumber(self, issuer: str, serialNumber: int, sodCertificates) -> ():
         """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""
