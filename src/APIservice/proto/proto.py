@@ -31,17 +31,30 @@ class PeCredentialsExpired(ProtoError):
     """ Challenge has expired """
     code = 498
 
-class PePreconditionFailed(ProtoError):
-    """ One or more condition in verification of emrtd PKI truschain failed """
-    code = 412
-
 class PeMissigParam(ProtoError):
     """ Missing protocol parameter """
     code = 422
 
+class PePreconditionFailed(ProtoError):
+    """ 
+    One or more condition in verification of emrtd PKI truschain failed.
+    Or when verifying SOD contains specific DG e.g.: DG1
+    """
+    code = 412
+
+class PePreconditionRequired(ProtoError):
+    """ 
+    Required preconditions that are marked as optional.
+    e.g.: at registration dg14 maight be required or at login dg1 could be required
+    """
+    code = 428
+
+
 class PeSigVerifyFailed(ProtoError):
     """ Challenge signature verification error """
     code = 401
+
+
 
 
 class PassIdProto:
