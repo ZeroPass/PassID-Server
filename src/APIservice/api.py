@@ -117,7 +117,7 @@ class PassIdApiServer:
             return self._handle_exception(e)
 
     # API: passID.login
-    def login(self, uid: str, cid: str, csigs: List[str]) -> dict:
+    def login(self, uid: str, cid: str, csigs: List[str], dg1: str = None) -> dict:
         """ 
         It returns back session key and session expiration time.
 
@@ -134,8 +134,10 @@ class PassIdApiServer:
             uid = try_deser(lambda: proto.UserId.fromBase64(uid))
             cid = try_deser(lambda: proto.CID.fromhex(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
+            if dg1 is not None:
+                dg1 = try_deser(lambda: ef.DG1.load(b64decode(dg1)))
 
-            sk, set = self._proto.login(uid, cid, csigs)
+            sk, set = self._proto.login(uid, cid, csigs, dg1)
             self._log.info(":login(): User has successfully logged-in. uid={} session expires: {}".format(uid2str(uid), set))
 
             return { "session_key": sk.toBase64(), "expires": int(set.timestamp()) }

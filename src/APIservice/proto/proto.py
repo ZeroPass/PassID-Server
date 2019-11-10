@@ -100,7 +100,7 @@ class PassIdProto:
         sk = SessionKey.generate()
         return (uid, sk, et)
 
-    def login(self, uid: UserId,  cid: CID, csigs: List[bytes]) -> Tuple[SessionKey, datetime]:
+    def login(self, uid: UserId,  cid: CID, csigs: List[bytes], dg1: ef.DG1 = None) -> Tuple[SessionKey, datetime]:
         """
         Register new user account-
 
