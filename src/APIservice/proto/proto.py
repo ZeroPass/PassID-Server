@@ -3,12 +3,13 @@ from datetime import datetime, timedelta
 import logging
 from typing import List, Tuple, Union
 
-#from management.main import CSCA
 from pymrtd.pki.x509 import DocumentSignerCertificate
 from .challenge import CID, Challenge
 from .db import StorageAPI
 from .session import SessionKey
 from .user import UserId
+
+from database.storage.accountStorage import AccountStorage
 
 from pymrtd import ef
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
@@ -127,16 +128,33 @@ class PassIdProto:
 
         # Get account
         a = self._db.getAccount(uid)
+        a.loginCount += 1
 
-        # 1. Verify account credentials haven't expired
+        # 1. Require DG1 if login count is gt 1
+        if a.loginCount > 1 and a.dg1 is None and dg1 is None:
+            raise PePreconditionRequired("File DG1 required")
+
+        # 2. If we got DG1 verify SOD contains its hash,
+        #    and assign it to the account
+        if dg1 is not None:
+            sod = a.getSOD()
+            if not sod.ldsSecurityObject.contains(dg1):
+                raise PePreconditionFailed("Invalid DG1 file")
+            else:
+                a.setDG1(dg1)
+
+        # 3. Verify account credentials haven't expired
         if self._has_expired(a.validUntil, datetime.utcnow()):
             raise PeCredentialsExpired("Account has expired")
 
-        # 2. Verify challenge
+        # 4. Verify challenge
         self._verify_challenge(cid, a.getAAPublicKey(), csigs, a.getSigAlgo())
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
-        # 3. Generate dummy session key and return results
+        # 5. Update account
+        self._db.addOrUpdateAccount(a)
+
+        # 6. Generate dummy session key and return it
         sk = SessionKey.generate()
         return (sk, a.validUntil)
 
