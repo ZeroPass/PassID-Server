@@ -63,11 +63,13 @@ challenge = Table('userChallenge', metadata,
                             )
 
 account = Table('account', metadata,
-                            Column('uid', String, primary_key=True), # uid = UserId
+                            Column('uid', LargeBinary, primary_key=True), # uid = UserId
+                            Column('sod', LargeBinary, nullable=False),
                             Column('aaPublicKey', LargeBinary, nullable=False),
                             Column('sigAlgo', LargeBinary, nullable=True),
+                            Column('dg1', LargeBinary, nullable=True),
                             Column('validUntil', DateTime),
-                            Column('sod', LargeBinary, nullable=False),
+                            Column('loginCount', Integer, default=0),
                             Column('isValid', Boolean)
                             )
 

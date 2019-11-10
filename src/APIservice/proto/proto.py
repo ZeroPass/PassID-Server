@@ -11,7 +11,6 @@ from .session import SessionKey
 from .user import UserId
 
 from pymrtd import ef
-#from pymrtd.pki import x509
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
 
 
@@ -100,14 +99,16 @@ class PassIdProto:
             sigAlgo = dg14.aaSignatureAlgo
 
         if aaPubKey.isEcKey() and dg14 is None:
-            raise PeMissigParam("Missing param dg14")
+            raise PePreconditionRequired("DG14 required")
 
         self._verify_challenge(cid, aaPubKey, csigs, sigAlgo)
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
         # 4. Insert account into db
         et = self._get_account_expiration(uid)
-        self._db.addOrUpdateAccount(aaPubKey, sigAlgo, sod, et)
+
+        a = AccountStorage(uid, sod, aaPubKey, sigAlgo, None, et)
+        self._db.addOrUpdateAccount(a)
 
         # 5. Generate dummy session key and return results
         sk = SessionKey.generate()
@@ -120,22 +121,24 @@ class PassIdProto:
         :param uid: User id
         :param cid: Challenge id
         :param csigs: List of signatures made over challenge chunks
+        :param dg1: (Optional) eMRTD DataGroup file 1
         :return: Tuple of session key and session expiration time
         """
 
-        aaPubKey, sigAlgo, et = self._db.getAccountCredentials(uid)
+        # Get account
+        a = self._db.getAccount(uid)
 
         # 1. Verify account credentials haven't expired
-        if self._has_expired(et, datetime.utcnow()):
-            raise PeCredentialsExpired("Account credentials have expired")
+        if self._has_expired(a.validUntil, datetime.utcnow()):
+            raise PeCredentialsExpired("Account has expired")
 
         # 2. Verify challenge
-        self._verify_challenge(cid, aaPubKey, csigs, sigAlgo)
+        self._verify_challenge(cid, a.getAAPublicKey(), csigs, a.getSigAlgo())
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
         # 3. Generate dummy session key and return results
         sk = SessionKey.generate()
-        return (sk, et)
+        return (sk, a.validUntil)
 
     def _verify_challenge(self, cid: CID, aaPubKey: AAPublicKey, csigs: List[bytes], sigAlgo: SignatureAlgorithm = None ) -> None:
         """
