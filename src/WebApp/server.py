@@ -2,6 +2,12 @@
 __version__ = "0.1"
 __all__ = ["WebApp"]
 
+import argparse, os, ssl, sys
+from pathlib import Path
+
+_script_path = Path(os.path.dirname(sys.argv[0]))
+sys.path.append(str(_script_path / Path("../")))
+
 from management.builder import Builder
 
 import os
@@ -14,6 +20,7 @@ import shutil
 import mimetypes
 import re
 import argparse
+from settings import *
 import base64
 
 from io import BytesIO
@@ -394,26 +401,58 @@ class WebApp(http.server.BaseHTTPRequestHandler):
     })
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--bind', '-b', default='', metavar='ADDRESS',
-                    help='Specify alternate bind address '
-                         '[default: all interfaces]')
-parser.add_argument('port', action='store',
-                    default=8000, type=int,
-                    nargs='?',
-                    help='Specify alternate port [default: 8000]')
-args = parser.parse_args()
+ap = argparse.ArgumentParser()
 
-PORT = 8888
-BIND = args.bind
-HOST = BIND
+ap.add_argument("-u", "--url", default='127.0.0.1',
+                type=str, help="Server http address. Default is localhost. The value '*' set the server open to worldwide.")
 
-if HOST == '':
-    HOST = 'localhost'
+ap.add_argument("-p", "--port", default=8000,
+                type=int, help="server listening port. Default is 8000.")
+
+ap.add_argument("--db-user",
+                type=str, help="database user name")
+
+ap.add_argument("--db-pwd",
+                type=str, help="database password")
+
+ap.add_argument("--db-name",
+                type=str, help="database name")
+
+args = vars(ap.parse_args())
+
+if args['url'] == '*':
+    args['url'] = "0.0.0.0"
+elif args['url'] == "localhost":
+    args['url'] = "127.0.0.1"
+
+print(args)
+
+if args['db_user'] == None or args['db_pwd'] == None or args['db_name'] == None:
+    raise Exception("Parameters 'db-user', 'db-pwd' and 'db-name' are necessary.")
+
+config = Config(
+        database=DbConfig(
+            user=args['db_user'],
+            pwd=args['db_pwd'],
+            db=args['db_name']
+        ),
+        api_server=ServerConfig(
+            host=None,
+            port=None,
+            ssl_ctx=None
+        ),
+        web_app=WebAppConfig(
+            host=args['url'],
+            port=args['port']
+        ),
+        challenge_ttl=0
+    )
+
+print (config)
 
 Handler = WebApp
 
-with socketserver.TCPServer((BIND, PORT), Handler) as httpd:
+with socketserver.TCPServer((config.web_app.host, config.web_app.port), Handler) as httpd:
     serve_message = "Serving HTTP on {host} port {port} (http://{host}:{port}/) ..."
-    print(serve_message.format(host=HOST, port=PORT))
+    print(serve_message.format(host=config.web_app.host, port=config.web_app.port))
     httpd.serve_forever()

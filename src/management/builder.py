@@ -27,7 +27,7 @@ from datetime import datetime
 from pymrtd.pki.ml import CscaMasterList
 from database.storage.storageManager import Connection, truncateAll
 
-from settings import config
+from settings import *
 
 #subject - authority
 #issucer - subject
@@ -53,8 +53,9 @@ class BuilderError(Exception):
 class Builder:
     """Building database structures and connections between certificates"""
 
-    def __init__(self, cscaFile, dscCrlFile):
+    def __init__(self, cscaFile, dscCrlFile, config):
         """CSCAfile and dscCrlFIle need to be in ldif format - downloaded from ICAO website"""
+
         conn = Connection(config.database.user, config.database.pwd, config.database.db)
         self.clearDatabase(conn)
         self.parseDscCrlFile(dscCrlFile, conn)

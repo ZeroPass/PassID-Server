@@ -139,7 +139,9 @@ class Connection:
 def truncateAll(connection: Connection):
     """Truncate all tables"""
     try:
-        a =1
-        # TODOTruncate
+        sql_raw_query = 'select \'TRUNCATE table "\' || tablename || \'" cascade;\' from pg_tables where schemaname=\'public\';'
+        for result in connection.getEngine().execute(sql_raw_query):
+            connection.getEngine().execute(result[0])
     except Exception as e:
         raise IOError("Problem deleting object" + e)
+

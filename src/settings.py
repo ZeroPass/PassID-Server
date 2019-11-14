@@ -22,11 +22,12 @@ class ServerConfig(NamedTuple):
     port: int
     ssl_ctx: ssl.SSLContext
 
+class WebAppConfig(NamedTuple):
+    host: str
+    port: int
+
 class Config(NamedTuple):
     database: DbConfig
     api_server: ServerConfig
+    web_app: WebAppConfig
     challenge_ttl: int
-
-
-
-#        pwd  = "",
