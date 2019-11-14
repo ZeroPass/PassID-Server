@@ -3,15 +3,15 @@ from datetime import datetime, timedelta
 import logging
 from typing import List, Tuple, Union
 
-#from management.main import CSCA
 from pymrtd.pki.x509 import DocumentSignerCertificate
 from .challenge import CID, Challenge
 from .db import StorageAPI
 from .session import SessionKey
 from .user import UserId
 
+from database.storage.accountStorage import AccountStorage
+
 from pymrtd import ef
-#from pymrtd.pki import x509
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
 
 
@@ -29,19 +29,32 @@ class PeChallengeExpired(ProtoError):
 
 class PeCredentialsExpired(ProtoError):
     """ Challenge has expired """
-    code = 401
-
-class PePreconditionFailed(ProtoError):
-    """ One or more condition in verification of emrtd PKI truschain failed """
-    code = 412
+    code = 498
 
 class PeMissigParam(ProtoError):
     """ Missing protocol parameter """
     code = 422
 
+class PePreconditionFailed(ProtoError):
+    """ 
+    One or more condition in verification of emrtd PKI truschain failed.
+    Or when verifying SOD contains specific DG e.g.: DG1
+    """
+    code = 412
+
+class PePreconditionRequired(ProtoError):
+    """ 
+    Required preconditions that are marked as optional.
+    e.g.: at registration dg14 maight be required or at login dg1 could be required
+    """
+    code = 428
+
+
 class PeSigVerifyFailed(ProtoError):
     """ Challenge signature verification error """
     code = 401
+
+
 
 
 class PassIdProto:
@@ -87,42 +100,63 @@ class PassIdProto:
             sigAlgo = dg14.aaSignatureAlgo
 
         if aaPubKey.isEcKey() and dg14 is None:
-            raise PeMissigParam("Missing param dg14")
+            raise PePreconditionRequired("DG14 required")
 
         self._verify_challenge(cid, aaPubKey, csigs, sigAlgo)
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
         # 4. Insert account into db
         et = self._get_account_expiration(uid)
-        self._db.addOrUpdateAccount(aaPubKey, sigAlgo, sod, et)
+
+        a = AccountStorage(uid, sod, aaPubKey, sigAlgo, None, et)
+        self._db.addOrUpdateAccount(a)
 
         # 5. Generate dummy session key and return results
         sk = SessionKey.generate()
         return (uid, sk, et)
 
-    def login(self, uid: UserId,  cid: CID, csigs: List[bytes]) -> Tuple[SessionKey, datetime]:
+    def login(self, uid: UserId,  cid: CID, csigs: List[bytes], dg1: ef.DG1 = None) -> Tuple[SessionKey, datetime]:
         """
         Register new user account-
 
         :param uid: User id
         :param cid: Challenge id
         :param csigs: List of signatures made over challenge chunks
+        :param dg1: (Optional) eMRTD DataGroup file 1
         :return: Tuple of session key and session expiration time
         """
 
-        aaPubKey, sigAlgo, et = self._db.getAccountCredentials(uid)
+        # Get account
+        a = self._db.getAccount(uid)
+        a.loginCount += 1
 
-        # 1. Verify account credentials haven't expired
-        if self._has_expired(et, datetime.utcnow()):
-            raise PeCredentialsExpired("Account credentials have expired")
+        # 1. Require DG1 if login count is gt 1
+        if a.loginCount > 1 and a.dg1 is None and dg1 is None:
+            raise PePreconditionRequired("File DG1 required")
 
-        # 2. Verify challenge
-        self._verify_challenge(cid, aaPubKey, csigs, sigAlgo)
+        # 2. If we got DG1 verify SOD contains its hash,
+        #    and assign it to the account
+        if dg1 is not None:
+            sod = a.getSOD()
+            if not sod.ldsSecurityObject.contains(dg1):
+                raise PePreconditionFailed("Invalid DG1 file")
+            else:
+                a.setDG1(dg1)
+
+        # 3. Verify account credentials haven't expired
+        if self._has_expired(a.validUntil, datetime.utcnow()):
+            raise PeCredentialsExpired("Account has expired")
+
+        # 4. Verify challenge
+        self._verify_challenge(cid, a.getAAPublicKey(), csigs, a.getSigAlgo())
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
-        # 3. Generate dummy session key and return results
+        # 5. Update account
+        self._db.addOrUpdateAccount(a)
+
+        # 6. Generate dummy session key and return it
         sk = SessionKey.generate()
-        return (sk, et)
+        return (sk, a.validUntil)
 
     def _verify_challenge(self, cid: CID, aaPubKey: AAPublicKey, csigs: List[bytes], sigAlgo: SignatureAlgorithm = None ) -> None:
         """
@@ -169,15 +203,16 @@ class PassIdProto:
         assert isinstance(dg14, (ef.DG14, type(None)))
         assert isinstance(dg15, ef.DG15)
 
-        # TODO: get all needed certificates from database and verify trustchain from CSCA to SOD before verifying dg15 and dg14
-        self.validateCertificatePath(sod)
-
         if dg14 is not None and \
            not sod.ldsSecurityObject.contains(dg14):
-            raise PePreconditionFailed("Digest mismatch for file dg14")
+            raise PePreconditionFailed("Invalid DG14 file")
 
         if not sod.ldsSecurityObject.contains(dg15):
-            raise PePreconditionFailed("Digest mismatch for file dg15")
+            raise PePreconditionFailed("Invalid DG15 file")
+
+        self.validateCertificatePath(sod)
+
+
 
     def getDSCbyIsserAndSerialNumber(self, issuer: str, serialNumber: int, sodCertificates) -> ():
         """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""

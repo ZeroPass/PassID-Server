@@ -20,7 +20,7 @@ from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
 from database.storage.storageManager import Connection
 
 from database.storage.challengeStorage import * 
-from database.storage.accountStorage import AccountStorage, writeToDB_account, readFromDBwithUid_account, AccountStorageError
+from database.storage.accountStorage import AccountStorage, AccountStorageError
 from database.storage.x509Storage import DocumentSignerCertificateStorage, CSCAStorage
 
 class StorageAPIError(Exception):
@@ -63,7 +63,7 @@ class StorageAPI(ABC):
         pass
 
     @abstractmethod
-    def addOrUpdateAccount(self, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], sod: ef.SOD, validUntil: datetime) -> UserId:
+    def addOrUpdateAccount(self, account: AccountStorage) -> None:
         pass
 
     @abstractmethod
@@ -71,16 +71,21 @@ class StorageAPI(ABC):
         pass
 
     @abstractmethod
+    def getAccount(self, uid: UserId) -> AccountStorage:
+        """ Get account """
+        pass
+
+    @abstractmethod
     def getAccountExpiry(self, uid: UserId) -> datetime:
         """ Get account's credentials expiry """
         pass
 
-    @abstractmethod
-    def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
-        """
-        Returns user credentials needed to verify user's authentication via challenge.
-        """
-        pass
+    #@abstractmethod
+    #def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
+    #    """
+    #    Returns user credentials needed to verify user's authentication via challenge.
+    #    """
+    #    pass
 
     @abstractmethod
     def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
@@ -155,29 +160,47 @@ class DatabaseAPI(StorageAPI):
 
     def accountExists(self, uid: UserId) -> bool:
         assert isinstance(uid, UserId)
-        return True if self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).count() > 0 else False
+        return True if self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).count() > 0 else False
 
-    def addOrUpdateAccount(self, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], sod: ef.SOD, validUntil: datetime) -> UserId:
-        #    def __init__(self, uid: str, aaPublicKey: str, sigAlgo: Union[str, None], validUntil: datetime, sod: str):
+    def addOrUpdateAccount(self, account: AccountStorage) -> None:
+        s = self._dbc.getSession()
+        accnts = s.query(AccountStorage).filter(AccountStorage.uid == account.uid)
+        if accnts.count() > 0:
+            accnts[0] = account
+        else:
+            s.add(account)
+        s.commit()
 
-        sigAlgoDump = None
-        if sigAlgo is not None:
-            sigAlgoDump = sigAlgo.dump()
+    def getAccount(self, uid: UserId) -> AccountStorage:
+        accounts = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).all()
+        if len(accounts) == 0:
+            self._log.ddebug(":getAccountExpiry(): Account not found")
+            raise SeEntryNotFound("Account not found.")
+        assert isinstance(accounts[0], AccountStorage)
+        return accounts[0]
 
-        uid = UserId.fromAAPublicKey(aaPublicKey)
-        accS = AccountStorage(str(uid), aaPublicKey.dump(), sigAlgoDump, validUntil, sod.dump())
+    #def addOrUpdateAccount(self, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], sod: ef.SOD, validUntil: datetime) -> UserId:
+    #    #    def __init__(self, uid: str, aaPublicKey: str, sigAlgo: Union[str, None], validUntil: datetime, sod: str):
 
-        self._dbc.getSession().add(accS)
-        self._dbc.getSession().commit()
+    #    sigAlgoDump = None
+    #    if sigAlgo is not None:
+    #        sigAlgoDump = sigAlgo.dump()
+
+    #    uid = UserId.fromAAPublicKey(aaPublicKey)
+    #    accS = AccountStorage(str(uid), aaPublicKey.dump(), sigAlgoDump, validUntil, sod.dump())
+
+    #    self._dbc.getSession().add(accS)
+    #    self._dbc.getSession().commit()
+    #    return uid
 
     def deleteAccount(self, uid: UserId) -> None:
         assert isinstance(uid, UserId)
-        self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).delete()
+        self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).delete()
         self._dbc.getSession().commit()
 
     def getAccountExpiry(self, uid: UserId) -> datetime:
         assert isinstance(uid, UserId)
-        items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
+        items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).all()
         if len(items) == 0:
             self._log.ddebug(":getAccountExpiry(): Account not found")
             raise SeEntryNotFound("Account not found.")
@@ -185,16 +208,16 @@ class DatabaseAPI(StorageAPI):
         assert isinstance(items[0].getValidUntil(), datetime)
         return items[0].getValidUntil()
 
-    def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
-        """
-        Returns user credentials needed to verify user's authentication via challenge.
-        """
-        assert isinstance(uid, UserId)
-        items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == str(uid)).all()
-        if len(items) == 0:
-            self._log.ddebug(":getAccountCredentials(): Account not found")
-            raise SeEntryNotFound("Account not found.")
-        return (items[0].getAAPublicKey(), items[0].getSigAlgo(), items[0].getValidUntil())
+    #def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
+    #    """
+    #    Returns user credentials needed to verify user's authentication via challenge.
+    #    """
+    #    assert isinstance(uid, UserId)
+    #    items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).all()
+    #    if len(items) == 0:
+    #        self._log.ddebug(":getAccountCredentials(): Account not found")
+    #        raise SeEntryNotFound("Account not found.")
+    #    return (items[0].getAAPublicKey(), items[0].getSigAlgo(), items[0].getValidUntil())
 
     #1.) issuer + serijska stevilka
     #2.) subjeect key identifier
@@ -285,15 +308,15 @@ class MemoryDB(StorageAPI):
         assert isinstance(uid, UserId)
         return uid in self._d['accounts']
 
-    def addOrUpdateAccount(self, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], sod: ef.SOD, validUntil: datetime) -> UserId:
-        assert isinstance(aaPublicKey, AAPublicKey)
-        assert isinstance(sigAlgo, (SignatureAlgorithm, type(None)))
-        assert isinstance(sod, ef.SOD)
-        assert isinstance(validUntil, datetime)
+    def addOrUpdateAccount(self, account: AccountStorage) -> None:
+        assert isinstance(account, AccountStorage)
+        self._d['accounts'][account.uid] = account
 
-        uid = UserId.fromAAPublicKey(aaPublicKey)
-        self._d['accounts'][uid] = (aaPublicKey, sigAlgo, sod, validUntil)
-        return uid
+    def getAccount(self, uid: UserId) -> AccountStorage:
+        assert isinstance(uid, UserId)
+        if uid not in self._d['accounts']:
+            raise SeEntryNotFound("Account not found")
+        return self._d['accounts'][uid]
 
     def deleteAccount(self, uid: UserId) -> None:
         assert isinstance(uid, UserId)
@@ -304,18 +327,18 @@ class MemoryDB(StorageAPI):
         assert isinstance(uid, UserId)
         if uid not in self._d['accounts']:
             raise SeEntryNotFound("Account not found")
-        accnt = self._d['accounts'][uid]
-        return accnt[3]
+        a = self.getAccount(uid)
+        return a.validUntil
 
-    def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None], datetime]:
-        """
-        Returns user credentials needed to verify user's authentication via challenge.
-        """
-        assert isinstance(uid, UserId)
-        if uid not in self._d['accounts']:
-            raise SeEntryNotFound("Account not found")
-        accnt = self._d['accounts'][uid]
-        return (accnt[0], accnt[1], accnt[3])
+    #def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None], datetime]:
+    #    """
+    #    Returns user credentials needed to verify user's authentication via challenge.
+    #    """
+    #    assert isinstance(uid, UserId)
+    #    if uid not in self._d['accounts']:
+    #        raise SeEntryNotFound("Account not found")
+    #    a = self.getAccount(uid)
+    #    return (a.getAAPublicKey(), a.getSigAlgo(), a.validUntil)
 
 
     def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
@@ -345,3 +368,11 @@ class MemoryDB(StorageAPI):
             if csca.subjectKey == subjectKey:
                 return dsc
         return None
+
+    def updateAccountDG1(self, uid: UserId, dg1: ef.DG1):
+        if uid not in self._d['accounts']:
+            raise SeEntryNotFound("Account not found")
+        accnt = self._d['accounts'][uid]
+        accnt = list(accnt)
+        accnt[4] = dg1
+        self._d['accounts'][uid] = tuple(accnt)
