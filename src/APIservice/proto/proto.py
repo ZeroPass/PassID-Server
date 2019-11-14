@@ -73,6 +73,9 @@ class PassIdProto:
         self._db.addChallenge(c, now)
         return c
 
+    def cancelChallenge(self, cid: CID) -> Union[None, dict]:
+        self._db.deleteChallenge(cid)
+
     def register(self, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[bytes], dg14: ef.DG14 = None) -> Tuple[UserId, SessionKey, datetime]:
         """
         Register new user account-
@@ -229,8 +232,6 @@ class PassIdProto:
         except:
             self._log.error("Failed to verify eMRTD certificate trustchain!")
             raise
-
-
 
     def getDSCbyIsserAndSerialNumber(self, issuer: str, serialNumber: int, sodCertificates) -> ():
         """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""

@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List
+from typing import List, Union
 
 from werkzeug.wrappers import Request, Response
 from werkzeug.serving import run_simple
@@ -46,6 +46,7 @@ class PassIdApiServer:
 
         add_api_meth(self.ping)
         add_api_meth(self.getChallenge)
+        add_api_meth(self.cancelChallenge)
         add_api_meth(self.register)
         add_api_meth(self.login)
 
@@ -80,6 +81,23 @@ class PassIdApiServer:
             c = self._proto.createNewChallenge()
             self._log.debug("Returning cid={} challenge={}".format(c.id, c.hex()))
             return { "challenge": c.toBase64() }
+        except Exception as e:
+            return self._handle_exception(e)
+
+    # API: passID.cancelChallenge
+    def cancelChallenge(self, challenge: str) -> Union[None, dict]:
+        """ 
+        Function erases challenge from server.
+        :param challenge: base64 encoded string
+        :return: 
+                 Nothing if success, else error
+        """
+        try:
+            self._log.debug(":cancelChallenge(): Got request to cancel challenge")
+            challenge = try_deser(lambda: proto.Challenge.fromBase64(challenge))
+            self._proto.cancelChallenge(challenge.id)
+            self._log.debug("Challenge was canceled cid={}".format(challenge.id))
+            return None
         except Exception as e:
             return self._handle_exception(e)
 
