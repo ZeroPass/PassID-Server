@@ -9,8 +9,8 @@ import logging
 import ssl
 from typing import NamedTuple 
 
-logging.basicConfig(level=logging.DEBUG) #waring, info, debug
-logger = logging.getLogger(__name__)
+#logging.basicConfig(level=logging.DEBUG) #waring, info, debug
+#logger = logging.getLogger(__name__)
 
 class DbConfig(NamedTuple):
     user: str
