@@ -36,7 +36,7 @@ class PassIdApiServer:
     def __init__(self, db: proto.StorageAPI, config: Config):
         self._conf  = config.api_server
         self._proto = proto.PassIdProto(db, config.challenge_ttl)
-        self._log   = logging.getLogger(PassIdApiServer.__name__)
+        self._log   = logging.getLogger("passid.api")
 
         # Register rpc api methods
         self._req_disp = Dispatcher()
@@ -64,7 +64,7 @@ class PassIdApiServer:
             self._log.debug(":ping(): {}".format(ping))
 
             pong = int.from_bytes(os.urandom(4), 'big')
-            self._log.debug(":ping(): Returning pong={}".format(pong))
+            self._log.debug("Returning pong={}".format(pong))
             return { "pong": pong }
         except Exception as e:
             return self._handle_exception(e)
@@ -78,7 +78,7 @@ class PassIdApiServer:
         try:
             self._log.debug(":getChallenge(): Got request for challenge")
             c = self._proto.createNewChallenge()
-            self._log.debug(":getChallenge(): Returning challenge={}".format(c.hex()))
+            self._log.debug("Returning cid={} challenge={}".format(c.id, c.hex()))
             return { "challenge": c.toBase64() }
         except Exception as e:
             return self._handle_exception(e)
@@ -110,8 +110,7 @@ class PassIdApiServer:
                 dg14 = try_deser(lambda: ef.DG14.load(b64decode(dg14)))
 
             uid, sk, set = self._proto.register(dg15, sod, cid, csigs, dg14)
-            self._log.info(":register(): New user has been registered successfully. uid={} session expires: {}".format(uid2str(uid), set))
-            print("expires", set.timestamp())
+            self._log.debug("New user has been registered successfully. uid={} session_expires: {}".format(uid2str(uid), set))
             return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
             return self._handle_exception(e)
@@ -138,7 +137,7 @@ class PassIdApiServer:
                 dg1 = try_deser(lambda: ef.DG1.load(b64decode(dg1)))
 
             sk, set = self._proto.login(uid, cid, csigs, dg1)
-            self._log.info(":login(): User has successfully logged-in. uid={} session expires: {}".format(uid2str(uid), set))
+            self._log.debug("User has successfully logged-in. uid={} session_expires: {}".format(uid2str(uid), set))
 
             return { "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
