@@ -103,6 +103,10 @@ def main():
             port = args['port'],
             ssl_ctx = ctx
         ),
+         web_app = WebAppConfig(
+            host=None,
+            port=None
+        ),
         challenge_ttl = args['challenge_ttl']
     )
 
