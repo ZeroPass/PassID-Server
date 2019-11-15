@@ -5,7 +5,7 @@
     Python Version: 3.6
 '''
 
-from settings import logger
+#from settings import logger
 
 from database.storage.storageManager import Connection
 from database.utils import *

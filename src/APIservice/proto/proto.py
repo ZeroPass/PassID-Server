@@ -61,14 +61,20 @@ class PassIdProto:
 
     def __init__(self, storage: StorageAPI, cttl: int):
         self.cttl = cttl
-        self._log = logging.getLogger(PassIdProto.__name__)
         self._db = storage
+        self._log = logging.getLogger("passid.proto")
+        logging.SUCCESS = 25  # between WARNING and INFO
+        logging.addLevelName(logging.SUCCESS, 'SUCCESS')
+        setattr(self._log, 'success', lambda message, *args: self._log._log(logging.SUCCESS, message, args))
 
     def createNewChallenge(self) -> Challenge:
         now = datetime.utcnow()
         c   = Challenge.generate(now)
         self._db.addChallenge(c, now)
         return c
+
+    def cancelChallenge(self, cid: CID) -> Union[None, dict]:
+        self._db.deleteChallenge(cid)
 
     def register(self, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[bytes], dg14: ef.DG14 = None) -> Tuple[UserId, SessionKey, datetime]:
         """
@@ -138,9 +144,12 @@ class PassIdProto:
         #    and assign it to the account
         if dg1 is not None:
             sod = a.getSOD()
+            self._log.info("Verifying SOD contains hash of received DG1 file")
             if not sod.ldsSecurityObject.contains(dg1):
+                self._log.error("Invalid DG1 file!")
                 raise PePreconditionFailed("Invalid DG1 file")
             else:
+                self._log.success("Valid DG1 file!")
                 a.setDG1(dg1)
 
         # 3. Verify account credentials haven't expired
@@ -166,29 +175,35 @@ class PassIdProto:
             PeMissigParam: If aaPubKey is ec public key and no sigAlgo is provided
             PeSigVerifyFailed: If verifying signatures over chunks of challenge fails
         """
-        if aaPubKey.isEcKey() and sigAlgo is None:
-            raise PeMissigParam("Missing param sigAlgo")
 
-        self._log.debug("Getting challenge from database cid={}".format(cid))
-        c, t = self._db.getChallenge(cid)
+        try:
+            self._log.info("Verifying challenge cid={}".format(cid))
+            if aaPubKey.isEcKey() and sigAlgo is None:
+                raise PeMissigParam("Missing param sigAlgo")
 
-        # Verify challenge expiration time
-        def get_past(datetime: datetime):
-            datetime = datetime.replace(tzinfo=None)
-            return datetime - timedelta(seconds=self.cttl)
+            c, t = self._db.getChallenge(cid)
 
-        ret = get_past(datetime.utcnow())
-        t = t.replace(tzinfo=None)
-        if self._has_expired(t, ret):
-            self._db.deleteChallenge(cid)
-            raise PeChallengeExpired("Challenge has expired")
+            # Verify challenge expiration time
+            def get_past(datetime: datetime):
+                datetime = datetime.replace(tzinfo=None)
+                return datetime - timedelta(seconds=self.cttl)
 
-        # Verify challenge signatures
-        self._log.debug("Verifying challenge signatures")
-        ccs = [c[0:8], c[8:16], c[16:24], c[24:32]]
-        for idx, sig in enumerate(csigs):
-            if not aaPubKey.verifySignature(ccs[idx], sig, sigAlgo):
-                raise PeSigVerifyFailed("Challenge signature verification failed")
+            ret = get_past(datetime.utcnow())
+            t = t.replace(tzinfo=None)
+            if self._has_expired(t, ret):
+                self._db.deleteChallenge(cid)
+                raise PeChallengeExpired("Challenge has expired")
+
+            # Verify challenge signatures
+            ccs = [c[0:8], c[8:16], c[16:24], c[24:32]]
+            for idx, sig in enumerate(csigs):
+                if not aaPubKey.verifySignature(ccs[idx], sig, sigAlgo):
+                    raise PeSigVerifyFailed("Challenge signature verification failed")
+
+            self._log.success("Challenge signed with eMRTD public key was successfully verified!")
+        except:
+            self._log.error("Challenge verification failed!")
+            raise
 
     def _has_expired(self, t1: datetime, t2: datetime):
         return t1 < t2
@@ -203,16 +218,20 @@ class PassIdProto:
         assert isinstance(dg14, (ef.DG14, type(None)))
         assert isinstance(dg15, ef.DG15)
 
-        if dg14 is not None and \
-           not sod.ldsSecurityObject.contains(dg14):
-            raise PePreconditionFailed("Invalid DG14 file")
+        try:
+            self._log.info("Verifying eMRTD certificate trustchain")
+            if dg14 is not None and \
+               not sod.ldsSecurityObject.contains(dg14):
+                raise PePreconditionFailed("Invalid DG14 file")
 
-        if not sod.ldsSecurityObject.contains(dg15):
-            raise PePreconditionFailed("Invalid DG15 file")
+            if not sod.ldsSecurityObject.contains(dg15):
+                raise PePreconditionFailed("Invalid DG15 file")
 
-        self.validateCertificatePath(sod)
-
-
+            self.validateCertificatePath(sod)
+            self._log.success("eMRTD certificate trustchain was successfully verified!")
+        except:
+            self._log.error("Failed to verify eMRTD certificate trustchain!")
+            raise
 
     def getDSCbyIsserAndSerialNumber(self, issuer: str, serialNumber: int, sodCertificates) -> ():
         """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""

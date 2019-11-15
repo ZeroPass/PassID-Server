@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import argparse, os, ssl, sys
+import argparse, os, ssl, sys, coloredlogs, logging
 from pathlib import Path
 
 _script_path = Path(os.path.dirname(sys.argv[0]))
@@ -33,6 +33,8 @@ class DevProto(proto.PassIdProto):
     def validateCertificatePath(self, sod: ef.SOD):
             if not self._no_tcv:
                 super().validateCertificatePath(sod)
+            else:
+                self._log.warning("Skipping verification of eMRTD certificate trustchain")
     
 class DevApiServer(PassIdApiServer):
     def __init__(self, db: proto.StorageAPI, config: Config, fc=False, no_tcv=False):
@@ -41,6 +43,41 @@ class DevApiServer(PassIdApiServer):
 
 
 def main():
+
+    # Set-up logging
+    coloredlogs.install(level='DEBUG', 
+        fmt='[%(asctime)s] %(name)s %(levelname)s %(message)s', 
+        field_styles={
+            'asctime': {'color': 'white'},
+            'levelname': {'color': 'white', 'bold': True}
+        },
+        level_styles={
+            'critical': {'color': 'red', 'bright': True},
+            'debug': {'color': 'black', 'bright': True},
+            'error': {'color': 'red', 'bright': True, 'bright': True},
+            'info': {},
+            'notice': {'color': 'magenta'},
+            'spam': {'color': 'green', 'faint': True},
+            'success': {'color': 'green', 'bright': True, 'bold': True},
+            'verbose': {'color': 'blue'}, 'warning': {'color': 'yellow'}
+    })
+
+    fh = logging.FileHandler("server.log")
+    fh.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        '[%(asctime)s] %(name)s %(levelname)s %(message)s')
+    fh.setFormatter(formatter)
+
+    l = logging.getLogger("passid.server")
+    l.addHandler(fh)
+
+    l.info("Starting new server session ...")
+    l.debug("run arguments: {}".format(sys.argv[1:]))
+
+    logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+    # Set-up cmd parameters
     ap = argparse.ArgumentParser()
     ap.add_argument("--challenge-ttl", default=300,
         type=int, help="number of seconds until requested challenge expires")
