@@ -13,15 +13,11 @@ DSC_CRL = open('C://Users/nejko/Desktop/ZeroPass/B1/random/parseCSCAandCRL/data/
 CSCA = open('C://Users/nejko/Desktop/ZeroPass/B1/random/parseCSCAandCRL/data/abc/icaopkd-002-ml-000131.ldif', 'rb')
 
 config = Config(
-    database=DbConfig(
-        user="",
-        pwd="",
-        db="",
+        database=DbConfig(user="", pwd="", db=""),
         api_server=ServerConfig(host=None, port=None, ssl_ctx=None),
-        web_app=WebApp(host=None, port=None),
+        web_app=WebAppConfig(host=None, port=None),
         challenge_ttl=0
-        )
     )
 
-parse = Builder(CSCA, DSC_CRL)
+parse = Builder(CSCA, DSC_CRL, config)
 re = 9

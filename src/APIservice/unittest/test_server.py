@@ -75,7 +75,7 @@ def main():
     ap.add_argument("-no-tls", default=False,
         action='store_true', help="do not use secure TLS connection")
 
-    ap.add_argument("-p", "--port",
+    ap.add_argument("-p", "--port", default=8080,
         type=int, help="server listening port")
 
     ap.add_argument("-u", "--url", default='0.0.0.0',
@@ -103,6 +103,7 @@ def main():
             port = args['port'],
             ssl_ctx = ctx
         ),
+        web_app=None,
         challenge_ttl = args['challenge_ttl']
     )
 

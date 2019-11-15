@@ -75,6 +75,9 @@ class AccountStorage(object):
         assert isinstance(dg1, ef.DG1)
         self.dg1 = dg1.dump()
 
+    def getValidUntil(self) -> datetime:
+        return self.validUntil
+
     def getIsValid(self) -> bool:
         """Return isValid from object"""
         return self.isValid
