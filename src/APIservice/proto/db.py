@@ -80,13 +80,6 @@ class StorageAPI(ABC):
         """ Get account's credentials expiry """
         pass
 
-    #@abstractmethod
-    #def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
-    #    """
-    #    Returns user credentials needed to verify user's authentication via challenge.
-    #    """
-    #    pass
-
     @abstractmethod
     def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
         """Get DSC"""
@@ -166,6 +159,7 @@ class DatabaseAPI(StorageAPI):
         s = self._dbc.getSession()
         accnts = s.query(AccountStorage).filter(AccountStorage.uid == account.uid)
         if accnts.count() > 0:
+            # TODO: update other fields
             if account.getDG1() != None:
                 accnts[0].setDG1(account.getDG1())
         else:
@@ -179,20 +173,6 @@ class DatabaseAPI(StorageAPI):
             raise SeEntryNotFound("Account not found.")
         assert isinstance(accounts[0], AccountStorage)
         return accounts[0]
-
-    #def addOrUpdateAccount(self, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], sod: ef.SOD, validUntil: datetime) -> UserId:
-    #    #    def __init__(self, uid: str, aaPublicKey: str, sigAlgo: Union[str, None], validUntil: datetime, sod: str):
-
-    #    sigAlgoDump = None
-    #    if sigAlgo is not None:
-    #        sigAlgoDump = sigAlgo.dump()
-
-    #    uid = UserId.fromAAPublicKey(aaPublicKey)
-    #    accS = AccountStorage(str(uid), aaPublicKey.dump(), sigAlgoDump, validUntil, sod.dump())
-
-    #    self._dbc.getSession().add(accS)
-    #    self._dbc.getSession().commit()
-    #    return uid
 
     def deleteAccount(self, uid: UserId) -> None:
         assert isinstance(uid, UserId)
@@ -208,20 +188,6 @@ class DatabaseAPI(StorageAPI):
 
         assert isinstance(items[0].getValidUntil(), datetime)
         return items[0].getValidUntil()
-
-    #def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None]]:
-    #    """
-    #    Returns user credentials needed to verify user's authentication via challenge.
-    #    """
-    #    assert isinstance(uid, UserId)
-    #    items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).all()
-    #    if len(items) == 0:
-    #        self._log.ddebug(":getAccountCredentials(): Account not found")
-    #        raise SeEntryNotFound("Account not found.")
-    #    return (items[0].getAAPublicKey(), items[0].getSigAlgo(), items[0].getValidUntil())
-
-    #1.) issuer + serijska stevilka
-    #2.) subjeect key identifier
 
     def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
         """Get DSC"""
@@ -244,30 +210,6 @@ class DatabaseAPI(StorageAPI):
         """Get DSC"""
         items = self._dbc.getSession().query(CSCAStorage).filter(CSCAStorage.subjectKey == subjectKey).all()
         return items
-
-
-    #def getValidUntil(self, SOD):
-    #    """Return datetime certificate is valid"""
-    #    #TODO: get real data from SOD
-    #    return datetime.now() - timedelta(days=15)
-
-    #def register(self, challengeId: str, signature: str, publicKey: str, sodData: str) -> str:
-    #    """API call: register"""
-    #    #check signature
-    #    APIcheckSignature_DB(challengeId, signature, config["registerTimeFrame"], self.conn)
-
-    #    #save to database and return public key address
-    #    validUntil = self.getValidUntil(sodData)
-    #    return writeToDB_account(publicKey, sigAlgo, validUntil, sodData, self.conn)
-
-    ##public key address(ripmd 160 over public key), challengeId, signature
-    #def login(self, challengeId: str, signature: str, uid: UserId) -> dict:
-    #    """API call: login"""
-    #    #check signature
-    #    APIcheckSignature_DB(challengeId, signature, config["registerTimeFrame"], self.conn)
-    #    #read from database
-    #    return readFromDBwithUid_account(publicKeyAddress, self.conn)
-
 
 class MemoryDBError(StorageAPIError):
     pass
@@ -330,17 +272,6 @@ class MemoryDB(StorageAPI):
             raise SeEntryNotFound("Account not found")
         a = self.getAccount(uid)
         return a.validUntil
-
-    #def getAccountCredentials(self, uid: UserId) -> Tuple[AAPublicKey, Union[SignatureAlgorithm, None], datetime]:
-    #    """
-    #    Returns user credentials needed to verify user's authentication via challenge.
-    #    """
-    #    assert isinstance(uid, UserId)
-    #    if uid not in self._d['accounts']:
-    #        raise SeEntryNotFound("Account not found")
-    #    a = self.getAccount(uid)
-    #    return (a.getAAPublicKey(), a.getSigAlgo(), a.validUntil)
-
 
     def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
         """Get DSC"""

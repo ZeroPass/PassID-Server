@@ -8,8 +8,6 @@
 from pymrtd.pki.x509 import CscaCertificate, DocumentSignerCertificate
 import logging
 
-
-#logging.basicConfig(level=logging.DEBUG) #waring, info, debug
 logger = logging.getLogger(__name__)
 
 class CSCAStorageError(Exception):

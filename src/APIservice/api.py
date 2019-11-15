@@ -15,7 +15,6 @@ from settings import Config
 
 #before start you need to install json-rpc librarby (pip install json-rpc)
 
-
 def try_deser(f):
     try:
         return f()
