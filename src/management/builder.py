@@ -57,12 +57,14 @@ class Builder:
     def __init__(self, cscaFile, dscCrlFile, config):
         """CSCAfile and dscCrlFIle need to be in ldif format - downloaded from ICAO website"""
 
+        self._log = logging.getLogger(Builder.__name__)
+
         conn = Connection(config.database.user, config.database.pwd, config.database.db)
         self.clearDatabase(conn)
         self.parseDscCrlFile(dscCrlFile, conn)
         self.parseCSCAFile(cscaFile, conn)
         self.processCRL(conn)
-        self._log = logging.getLogger(Builder.__name__)
+
 
     def clearDatabase(self, connection: Connection):
         """Clear database"""
@@ -180,6 +182,6 @@ class Builder:
                 self.iterateCRL(crl.getObject(), connection)
 
         except CertificateRevocationListStorageError as e:
-            logger.error("Exception description:" + e)
+            self._log.error("Exception description:" + e)
         except Exception as e:
             raise Exception("Unknown error.")

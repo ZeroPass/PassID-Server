@@ -152,7 +152,7 @@ class WebApp(http.server.BaseHTTPRequestHandler):
             fnDSC_CRL_open = open(fnDSC_CRL, 'rb')
             fnMasterList_open = open(fnMasterList, 'rb')
 
-            Builder(fnMasterList_open, fnDSC_CRL_open)
+            Builder(fnMasterList_open, fnDSC_CRL_open, config)
             return (True, "File '%s' upload success!" % ",".join(uploaded_files))
 
     def send_head(self):
@@ -425,7 +425,7 @@ if args['url'] == '*':
 elif args['url'] == "localhost":
     args['url'] = "127.0.0.1"
 
-print(args)
+#print(args)
 
 if args['db_user'] == None or args['db_pwd'] == None or args['db_name'] == None:
     raise Exception("Parameters 'db-user', 'db-pwd' and 'db-name' are necessary.")
