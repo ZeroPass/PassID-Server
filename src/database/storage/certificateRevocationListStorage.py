@@ -1,5 +1,9 @@
+import logging
 from pymrtd.pki.crl import CertificateRevocationList
-from settings import logger
+from settings import *
+
+logger = logging.getLogger(__name__)
+
 
 class CertificateRevocationListStorageError(Exception):
     pass

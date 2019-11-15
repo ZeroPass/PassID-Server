@@ -8,8 +8,7 @@
 from ldif3 import LDIFParser
 from asn1crypto import crl, x509
 import re
-
-from settings import *
+import logging
 
 from pymrtd.pki.crl import CertificateRevocationList
 from pymrtd.pki.x509 import DocumentSignerCertificate, Certificate, CscaCertificate, MasterListSignerCertificate
@@ -28,6 +27,8 @@ from pymrtd.pki.ml import CscaMasterList
 from database.storage.storageManager import Connection, truncateAll
 
 from settings import *
+
+logger = logging.getLogger(__name__)
 
 #subject - authority
 #issucer - subject
@@ -61,6 +62,7 @@ class Builder:
         self.parseDscCrlFile(dscCrlFile, conn)
         self.parseCSCAFile(cscaFile, conn)
         self.processCRL(conn)
+        self._log = logging.getLogger(Builder.__name__)
 
     def clearDatabase(self, connection: Connection):
         """Clear database"""
@@ -102,7 +104,7 @@ class Builder:
             writeToDB_CSCA(csca, connection)
 
         except Exception as e:
-            logger.error("Certificate is not valid anymore or verification failed.")
+            self._log.error("Certificate is not valid anymore or verification failed.")
     def parseCSCAFile(self, CSCAFile, connection: Connection):
         """Parsing CSCA file"""
         parser = LDIFParser(CSCAFile)
@@ -114,7 +116,7 @@ class Builder:
                     # verify masterlist - if failed it returns exception
                     masterList.verify()
                 except Exception as e:
-                    logger.error("Integrity verification failed for master list issued by {}."
+                    self._log.error("Integrity verification failed for master list issued by {}."
                                   .format(masterList.signerCertificates[0].subject.native['country_name']))
 
                 cscas = {}
@@ -136,7 +138,7 @@ class Builder:
                 for csca in skipped_cscas:
                     issuer_cert = get_issuer_cert(csca, cscas)
                     if issuer_cert is None:
-                        logger.error("Could not verify signature of CSCA C={} SerNo={}. Issuing CSCA not found! The CSCA is skipped and not stored in database."
+                        self._log.error("Could not verify signature of CSCA C={} SerNo={}. Issuing CSCA not found! The CSCA is skipped and not stored in database."
                                       .format(csca.subject.native['country_name'], hex(csca.serial_number).rstrip("L").lstrip("0x")))
                     else:
                         self.verifyCSCAandWrite(csca, issuer_cert, connection)
@@ -145,14 +147,14 @@ class Builder:
                 for mlsig_cert in masterList.signerCertificates:
                     issuer_cert = get_issuer_cert(mlsig_cert, cscas)
                     if issuer_cert is None:
-                        logger.info(
+                        self._log.info(
                             "Could not verify signature of master list signer certificate. Issuing CSCA not found! [C={} Ml-Sig-SerNo={}]".format(
                                 mlsig_cert.subject.native['country_name'], hex(mlsig_cert.serial_number).rstrip("L").lstrip("0x")))
                     else:
                         try:
                             mlsig_cert.verify(issuer_cert)
                         except Exception as e:
-                            logger.info(
+                            self._log.info(
                                 "Failed to verify master list signer C={} Ml-Sig-SerNo={}\n\treason: {}".format(
                                     mlsig_cert.subject.native['country_name'], hex(mlsig_cert.serial_number).rstrip("L").lstrip("0x"), str(e)))
 

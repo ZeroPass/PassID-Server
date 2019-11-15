@@ -29,6 +29,7 @@ class Filter:
     def __init__(self, crl: CertificateRevocationList, connection: Connection):
         """Start the process"""
         try:
+            self._log = logging.getLogger(Filter.__name__)
             issuer = self.getIssuer(crl)
             for item in crl['tbs_cert_list']['revoked_certificates']:
                 self.deleteCertificateByIssuerAndSerialNumber(issuer, item["user_certificate"], connection)
@@ -61,7 +62,7 @@ class Filter:
 
     def deleteCertificateByIssuerAndSerialNumber(self, issuer, serialNumber, connection: Connection) -> []:
         """Find in database certificates with selected issuer and serial number"""
-        logger.debug("Find linked certificates with issuer: " + issuer + " and serial number:" + str(serialNumber))
+        self._log.debug("Find linked certificates with issuer: " + issuer + " and serial number:" + str(serialNumber))
 
         dataDSC = readFromDB_DSC_issuer_serialNumber(issuer, serialNumber, connection)
         dataCSCA = readFromDB_CSCA_issuer_serialNumber(issuer, serialNumber, connection)
@@ -69,7 +70,7 @@ class Filter:
         lengthDSC = len(dataDSC)
         lengthCSCA = len(dataCSCA)
         if lengthDSC and lengthCSCA == 0:
-            logger.debug("Linked certificate not found.")
+            self._log.debug("Linked certificate not found.")
             return
 
         if lengthDSC > 0:

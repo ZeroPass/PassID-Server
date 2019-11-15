@@ -16,13 +16,14 @@ class CRLArray:
 
     def __init__(self, crl):
         item = CertificationRevocationList(crl)
+        self._log = logging.getLogger(CRLArray.__name__)
         #add to dictonary with key 'countryName'
         dict[item.countryName] = item
 
     def getCountry(self, countryName) -> CertificationRevocationList:
         """Function returns country of CRL issuer """
         foundItem = self.dict[countryName] if countryName in self.dict else None
-        logger.info("Getting country with countryName: " + countryName + ", found/not found" + True if foundItem is not None else False)
+        self._log.info("Getting country with countryName: " + countryName + ", found/not found" + True if foundItem is not None else False)
         return foundItem
 
 

@@ -166,8 +166,8 @@ class DatabaseAPI(StorageAPI):
         s = self._dbc.getSession()
         accnts = s.query(AccountStorage).filter(AccountStorage.uid == account.uid)
         if accnts.count() > 0:
-            accnts[0].setDG1(account.getDG1())
-            r = 9
+            if account.getDG1() != None:
+                accnts[0].setDG1(account.getDG1())
         else:
             s.add(account)
         s.commit()
