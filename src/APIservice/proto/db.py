@@ -169,7 +169,7 @@ class DatabaseAPI(StorageAPI):
     def getAccount(self, uid: UserId) -> AccountStorage:
         accounts = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).all()
         if len(accounts) == 0:
-            self._log.ddebug(":getAccountExpiry(): Account not found")
+            self._log.debug(":getAccountExpiry(): Account not found")
             raise SeEntryNotFound("Account not found.")
         assert isinstance(accounts[0], AccountStorage)
         return accounts[0]
@@ -183,7 +183,7 @@ class DatabaseAPI(StorageAPI):
         assert isinstance(uid, UserId)
         items = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).all()
         if len(items) == 0:
-            self._log.ddebug(":getAccountExpiry(): Account not found")
+            self._log.debug(":getAccountExpiry(): Account not found")
             raise SeEntryNotFound("Account not found.")
 
         assert isinstance(items[0].getValidUntil(), datetime)
