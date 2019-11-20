@@ -3,8 +3,8 @@ Portal where anyone can upload and parse ICAO data.
 
 ### Prerequisites
 * Python 3.7 or higher,
-* Installed requirements from [here](../README.md),
-* Prepared PostgreSQL user and database (see [here](../README.md])).
+* Installed requirements from [here](../../../../../PassID-Server#prerequisites),
+* Prepared PostgreSQL user and database (see [here](../../../../../PassID-Server#configure-postgresql-database)).
 
 ### Parameters
 
