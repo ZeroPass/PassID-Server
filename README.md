@@ -80,7 +80,7 @@ pip3 install psycopg2
 * [Python Machine Readable Trevlers Document](src/pymrtd)
 
 ### Separated project documentation
-* API service [README](APIService/README.md)
+* API service [README](src/APIservice#api-service)
 * Web app [README](WebApp/README.md)
 
 ### Other documentation
