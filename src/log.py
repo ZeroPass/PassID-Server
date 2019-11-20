@@ -6,6 +6,8 @@ logging.addLevelName(logging.SUCCESS, 'SUCCESS')
 logging.VERBOSE = 5  # between NOTSET and DEBUG
 logging.addLevelName(logging.VERBOSE, 'VERBOSE')
 
+from logging import VERBOSE, DEBUG, INFO, SUCCESS, WARN, ERROR, FATAL, CRITICAL
+
 def getLogger(name = None):
     """
     Install Log class as default logging class and returns new or existing logger by name.
@@ -17,9 +19,9 @@ def getLogger(name = None):
 
 class Log(logging.Logger):
     def success(self, msg, *args, **kw):
-        if self.isEnabledFor(logging.SUCCESS):
-            self._log(logging.SUCCESS, msg, args, **kw)
+        if self.isEnabledFor(SUCCESS):
+            self._log(SUCCESS, msg, args, **kw)
 
     def verbose(self, msg, *args, **kw):
-        if self.isEnabledFor(logging.VERBOSE):
-            self._log(logging.VERBOSE, msg, args, **kw)
+        if self.isEnabledFor(VERBOSE):
+            self._log(VERBOSE, msg, args, **kw)
