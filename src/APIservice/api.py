@@ -46,6 +46,7 @@ class PassIdApiServer:
 
     def passidapi(api_f):
         def wrapped_api_f(self, *args, **kwargs):
+            self.__log_api_call(api_f, **kwargs)
             return api_f(self, *args, **kwargs)
         return wrapped_api_f
 
@@ -197,3 +198,9 @@ class PassIdApiServer:
         for m in meths:
             if m[1].__name__ == "wrapped_api_f":
                 add_api_meth(m[1], m[0])
+
+    def __log_api_call(self, f, **kwargs):
+        if self._log.level <= log.VERBOSE:
+            self._log.verbose(":{}() =>".format(f.__name__))
+            for a, v in kwargs.items():
+                self._log.verbose(" {}: {}".format(a, v))
