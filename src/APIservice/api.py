@@ -38,23 +38,19 @@ class PassIdApiServer:
         self._log   = logging.getLogger("passid.api")
 
         # Register rpc api methods
-        self._req_disp = Dispatcher()
-        def add_api_meth(f):
-            # method format: <api_prefix>.<methodName>
-            self._req_disp.add_method(f, "{}.{}".format(self.api_method_prefix, f.__name__))
-
-        add_api_meth(self.ping)
-        add_api_meth(self.getChallenge)
-        add_api_meth(self.cancelChallenge)
-        add_api_meth(self.register)
-        add_api_meth(self.login)
+        self.__init_api()
 
     def start(self):
         run_simple(self._conf.host, self._conf.port, self._create_calls, ssl_context=self._conf.ssl_ctx, threaded=True)
 
+    def passidapi(api_f):
+        def wrapped_api_f(self, *args, **kwargs):
+            return api_f(self, *args, **kwargs)
+        return wrapped_api_f
 
 # RPC API methods
     # API: passID.ping
+    @passidapi
     def ping(self, ping: int) -> dict:
         """ 
         Function returns challenge that passport needs to sign.
@@ -70,6 +66,7 @@ class PassIdApiServer:
             return self._handle_exception(e)
 
     # API: passID.getChallenge
+    @passidapi
     def getChallenge(self) -> dict:
         """ 
         Function returns challenge that passport needs to sign.
@@ -84,6 +81,7 @@ class PassIdApiServer:
             return self._handle_exception(e)
 
     # API: passID.cancelChallenge
+    @passidapi
     def cancelChallenge(self, challenge: str) -> Union[None, dict]:
         """ 
         Function erases challenge from server.
@@ -101,6 +99,7 @@ class PassIdApiServer:
             return self._handle_exception(e)
 
     # API: passID.register
+    @passidapi
     def register(self, dg15: str, sod: str, cid: str, csigs: List[str], dg14: str = None) -> dict:
         """ 
         Register new user. It returns back to the client userId which is publicKey address,
@@ -133,6 +132,7 @@ class PassIdApiServer:
             return self._handle_exception(e)
 
     # API: passID.login
+    @passidapi
     def login(self, uid: str, cid: str, csigs: List[str], dg1: str = None) -> dict:
         """ 
         It returns back session key and session expiration time.
@@ -181,3 +181,18 @@ class PassIdApiServer:
         
         self._log.error("Unhandled exception encountered, e={}".format(e))
         raise JSONRPCDispatchException(500, "Internal Server Error")
+
+    def __init_api(self):
+        self._req_disp = Dispatcher()
+
+        def add_api_meth(api_f, name):
+            # method format: <api_prefix>.<methodName>
+            passid_api_f = lambda *args, **kwargs: api_f(self, *args, **kwargs)
+            self._req_disp.add_method(passid_api_f, "{}.{}".format(PassIdApiServer.api_method_prefix, name))
+
+        # register methods with @passidapi decorator as rpc api handler
+        import inspect
+        meths = inspect.getmembers(PassIdApiServer, predicate=inspect.isfunction)
+        for m in meths:
+            if m[1].__name__ == "wrapped_api_f":
+                add_api_meth(m[1], m[0])
