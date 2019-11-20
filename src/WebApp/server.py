@@ -4,10 +4,13 @@ __all__ = ["WebApp"]
 
 import argparse, os, ssl, sys
 from pathlib import Path
+import logging
 
 _script_path = Path(os.path.dirname(sys.argv[0]))
 sys.path.append(str(_script_path / Path("../")))
 
+
+logger = logging.getLogger(__name__)
 from management.builder import Builder
 
 import os
@@ -106,7 +109,7 @@ class WebApp(http.server.BaseHTTPRequestHandler):
 
             if not fn:
                 return (False, "Can't find out file name...")
-            path = self.translate_path(self.path + "/uploadedFiles")
+            path = self.translate_path(self.path + "/src/WebApp/uploadedFiles")
             fn = None
             if isMasterList == True:
                 fn = os.path.join(path, "MasterList.ldif")
@@ -152,7 +155,10 @@ class WebApp(http.server.BaseHTTPRequestHandler):
             fnDSC_CRL_open = open(fnDSC_CRL, 'rb')
             fnMasterList_open = open(fnMasterList, 'rb')
 
-            Builder(fnMasterList_open, fnDSC_CRL_open, config)
+            try:
+                Builder(fnMasterList_open, fnDSC_CRL_open, config)
+            except Exception as e:
+                logger.info("There is an exception. Error: " + str(e))
             return (True, "File '%s' upload success!" % ",".join(uploaded_files))
 
     def send_head(self):
@@ -409,13 +415,13 @@ ap.add_argument("-u", "--url", default='127.0.0.1',
 ap.add_argument("-p", "--port", default=8000,
                 type=int, help="server listening port. Default is 8000.")
 
-ap.add_argument("--db-user",
+ap.add_argument("--db-user", default="",
                 type=str, help="database user name")
 
-ap.add_argument("--db-pwd",
+ap.add_argument("--db-pwd", default="",
                 type=str, help="database password")
 
-ap.add_argument("--db-name",
+ap.add_argument("--db-name", default="",
                 type=str, help="database name")
 
 args = vars(ap.parse_args())

@@ -88,7 +88,7 @@ class Connection:
             url = url.format(user, password, host, port, db)
 
             # The return value of create_engine() is our connection object
-            self.connectionObj = sqlalchemy.create_engine(url, client_encoding='utf8', echo=False)
+            self.connectionObj = sqlalchemy.create_engine(url, client_encoding='utf8', echo=True)
 
             # We then bind the connection to MetaData()
             self.metaData = sqlalchemy.MetaData(bind=self.connectionObj, reflect=True)
