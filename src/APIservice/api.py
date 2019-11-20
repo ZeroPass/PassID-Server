@@ -42,7 +42,7 @@ class PassIdApiServer:
         self.__init_api()
 
     def start(self):
-        run_simple(self._conf.host, self._conf.port, self._create_calls, ssl_context=self._conf.ssl_ctx, threaded=True)
+        run_simple(self._conf.host, self._conf.port, self.__create_calls, ssl_context=self._conf.ssl_ctx, threaded=True)
 
     def passidapi(api_f):
         def wrapped_api_f(self, *args, **kwargs):
@@ -65,7 +65,7 @@ class PassIdApiServer:
             self._log.debug("Returning pong={}".format(pong))
             return { "pong": pong }
         except Exception as e:
-            return self._handle_exception(e)
+            return self.__handle_exception(e)
 
     # API: passID.getChallenge
     @passidapi
@@ -80,7 +80,7 @@ class PassIdApiServer:
             self._log.debug("Returning cid={} challenge={}".format(c.id, c.hex()))
             return { "challenge": c.toBase64() }
         except Exception as e:
-            return self._handle_exception(e)
+            return self.__handle_exception(e)
 
     # API: passID.cancelChallenge
     @passidapi
@@ -98,7 +98,7 @@ class PassIdApiServer:
             self._log.debug("Challenge was canceled cid={}".format(challenge.id))
             return None
         except Exception as e:
-            return self._handle_exception(e)
+            return self.__handle_exception(e)
 
     # API: passID.register
     @passidapi
@@ -131,7 +131,7 @@ class PassIdApiServer:
             self._log.debug("New user has been registered successfully. uid={} session_expires: {}".format(uid2str(uid), set))
             return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
-            return self._handle_exception(e)
+            return self.__handle_exception(e)
 
     # API: passID.login
     @passidapi
@@ -160,11 +160,11 @@ class PassIdApiServer:
 
             return { "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
-            return self._handle_exception(e)
+            return self.__handle_exception(e)
 
 # Request handler
     @Request.application
-    def _create_calls(self, request):
+    def __create_calls(self, request):
         """Create API calls"""
         response = JRPCRespMgr.handle(
             request.data,
@@ -172,7 +172,7 @@ class PassIdApiServer:
         ).json
         return Response(response, mimetype='application/json')
 
-    def _handle_exception(self, e: Exception)-> dict:
+    def __handle_exception(self, e: Exception)-> dict:
         if isinstance(e, proto.ProtoError):
             self._log.debug("Request proto error: {}".format(e))
             raise JSONRPCDispatchException(e.code, str(e))
