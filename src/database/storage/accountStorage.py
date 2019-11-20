@@ -6,7 +6,6 @@
 '''
 
 from database.storage.storageManager import Connection
-from database.utils import *
 from APIservice.proto.user import UserId
 
 from pymrtd import ef

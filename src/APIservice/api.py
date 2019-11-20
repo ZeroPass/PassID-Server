@@ -10,9 +10,10 @@ from jsonrpc.exceptions import JSONRPCDispatchException, JSONRPCServerError, JSO
 import log
 
 from APIservice import proto
-from database.utils import *
 from pymrtd import ef
 from settings import Config
+
+from base64 import b64decode
 
 #before start you need to install json-rpc librarby (pip install json-rpc)
 
@@ -60,7 +61,6 @@ class PassIdApiServer:
         """
         try:
             self._log.debug(":ping(): {}".format(ping))
-
             pong = int.from_bytes(os.urandom(4), 'big')
             self._log.debug("Returning pong={}".format(pong))
             return { "pong": pong }
@@ -93,6 +93,7 @@ class PassIdApiServer:
         """
         try:
             self._log.debug(":cancelChallenge(): Got request to cancel challenge")
+
             challenge = try_deser(lambda: proto.Challenge.fromBase64(challenge))
             self._proto.cancelChallenge(challenge.id)
             self._log.debug("Challenge was canceled cid={}".format(challenge.id))
@@ -128,7 +129,7 @@ class PassIdApiServer:
                 dg14 = try_deser(lambda: ef.DG14.load(b64decode(dg14)))
 
             uid, sk, set = self._proto.register(dg15, sod, cid, csigs, dg14)
-            self._log.debug("New user has been registered successfully. uid={} session_expires: {}".format(uid2str(uid), set))
+            self._log.debug("New user has been registered successfully. uid={} session_expires: {}".format(uid.hex(), set))
             return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
             return self.__handle_exception(e)
@@ -146,7 +147,6 @@ class PassIdApiServer:
                  'session_key' - base64 encoded session key
                  'expires'     - unix timestamp of time when session will expire
         """
-
         try:
             self._log.debug(":login(): Got login request uid={}".format(uid))
             uid = try_deser(lambda: proto.UserId.fromBase64(uid))
@@ -156,7 +156,7 @@ class PassIdApiServer:
                 dg1 = try_deser(lambda: ef.DG1.load(b64decode(dg1)))
 
             sk, set = self._proto.login(uid, cid, csigs, dg1)
-            self._log.debug("User has successfully logged-in. uid={} session_expires: {}".format(uid2str(uid), set))
+            self._log.debug("User has successfully logged-in. uid={} session_expires: {}".format(uid.hex(), set))
 
             return { "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
