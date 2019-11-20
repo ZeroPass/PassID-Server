@@ -1,4 +1,3 @@
-import logging
 import os
 from typing import List, Union
 
@@ -7,6 +6,8 @@ from werkzeug.serving import run_simple
 
 from jsonrpc import Dispatcher, JSONRPCResponseManager as JRPCRespMgr
 from jsonrpc.exceptions import JSONRPCDispatchException, JSONRPCServerError, JSONRPCInternalError
+
+import log
 
 from APIservice import proto
 from database.utils import *
@@ -35,7 +36,7 @@ class PassIdApiServer:
     def __init__(self, db: proto.StorageAPI, config: Config):
         self._conf  = config.api_server
         self._proto = proto.PassIdProto(db, config.challenge_ttl)
-        self._log   = logging.getLogger("passid.api")
+        self._log   = log.getLogger("passid.api")
 
         # Register rpc api methods
         self.__init_api()

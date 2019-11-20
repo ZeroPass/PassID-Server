@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta
-
-import logging
 from typing import List, Tuple, Union
 
 from pymrtd.pki.x509 import DocumentSignerCertificate
@@ -10,6 +8,8 @@ from .session import SessionKey
 from .user import UserId
 
 from database.storage.accountStorage import AccountStorage
+
+import log
 
 from pymrtd import ef
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
@@ -62,10 +62,7 @@ class PassIdProto:
     def __init__(self, storage: StorageAPI, cttl: int):
         self.cttl = cttl
         self._db = storage
-        self._log = logging.getLogger("passid.proto")
-        logging.SUCCESS = 25  # between WARNING and INFO
-        logging.addLevelName(logging.SUCCESS, 'SUCCESS')
-        setattr(self._log, 'success', lambda message, *args: self._log._log(logging.SUCCESS, message, args))
+        self._log = log.getLogger("passid.proto")
 
     def createNewChallenge(self) -> Challenge:
         now = datetime.utcnow()
