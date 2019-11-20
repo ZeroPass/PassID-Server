@@ -81,7 +81,7 @@ pip3 install psycopg2
 
 ### Separated project documentation
 * API service [README](src/APIservice#api-service)
-* Web app [README](WebApp/README.md)
+* Web app [README](src/WebApp#webapp-data)
 
 ### Other documentation
 * [ICAO LDAP-LDIF structure specification](https://www.icao.int/publications/Documents/9303_p12_cons_en.pdf)
