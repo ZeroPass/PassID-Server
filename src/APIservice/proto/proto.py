@@ -78,7 +78,7 @@ class PassIdProto:
 
     def register(self, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[bytes], dg14: ef.DG14 = None) -> Tuple[UserId, SessionKey, datetime]:
         """
-        Register new user account-
+        Register new user account.
 
         :param dg15: eMRTD DataGroup file 15
         :param sod: eMRTD Data Security Object
@@ -125,7 +125,7 @@ class PassIdProto:
 
     def login(self, uid: UserId,  cid: CID, csigs: List[bytes], dg1: ef.DG1 = None) -> Tuple[SessionKey, datetime]:
         """
-        Register new user account-
+        Login user and return session key.
 
         :param uid: User id
         :param cid: Challenge id
