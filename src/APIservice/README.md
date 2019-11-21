@@ -95,15 +95,19 @@ type: bool
 ```
 
 ##Call
+
 Call from /src folder:
 ```
- python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0
+ sudo python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0
 ```
 
 Call from /src folder to run in background:
 ```
-nohup python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0 &  
+sudo nohup python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0 &  
 ```
+
+Action needs to be called as admin because of 80/443 port.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
