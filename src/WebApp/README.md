@@ -47,12 +47,12 @@ type: str
 ##Call
 Call from /src folder:
 ```
- python3 WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost
+ python3 src/WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost
 ```
 
 Call from /src folder to run in background:
 ```
-nohup python3 WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost &  
+nohup python3 src/WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost &  
 ```
 ## License
 
