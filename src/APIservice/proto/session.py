@@ -1,4 +1,4 @@
-import base64
+import base64, hmac, hashlib
 from typing import cast
 import os
 
@@ -41,3 +41,52 @@ class SessionKey(bytes):
         h = Hash(SessionKey._hash_algo(), backend=default_backend())
         h.update(rs)
         return SessionKey(h.finalize())
+
+
+class Session:
+    def __init__(self, key: SessionKey, nonce: int = 0):
+        assert isinstance(key, SessionKey)
+        assert isinstance(nonce, int)
+        assert  -1 < nonce <= 0xFFFFFFFF
+        self.__key   = key
+        self.__nonce = nonce
+
+    @property
+    def key(self):
+        return self.__key
+
+    @property
+    def nonce(self):
+        return self.__nonce
+
+    def getMAC(self, data):
+        n = self.__get_encoded_nonce()
+        self.__increment_nonce()
+        return hmac.new(
+            key=self.__key,
+            msg= n + data,
+            digestmod=hashlib.sha256
+        ).digest()
+
+    def verifyMAC(self, data, mac):
+        cmac = self.getMAC(data)
+        return hmac.compare_digest(mac, cmac)
+
+    def fromBytes(rawSession: bytes) -> "Session":
+        assert isinstance(rawSession, bytes)
+
+        dsize = SessionKey._hash_algo.digest_size
+        key = SessionKey(rawSession[0:dsize])
+        nonce = int.from_bytes(rawSession[dsize:], byteorder='big')  
+        return Session(key, nonce)
+
+    def bytes(self) -> bytes:
+        return self.__key + self.__get_encoded_nonce()
+
+    def __get_encoded_nonce(self):
+        return self.__nonce.to_bytes(4, 'big')
+
+    def __increment_nonce(self):
+        self.__nonce += 1 
+        if self.__nonce > 0xffffffff:
+            self.__nonce = 0

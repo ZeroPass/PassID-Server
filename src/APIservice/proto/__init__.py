@@ -22,7 +22,11 @@ from .proto import (
     ProtoError
 )
 
-from .session import SessionKey
+from .session import (
+    Session,
+    SessionKey
+)
+
 from .user import UserId
 
 __all__ = [
