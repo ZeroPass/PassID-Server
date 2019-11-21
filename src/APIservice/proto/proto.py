@@ -182,7 +182,7 @@ class PassIdProto:
         a.loginCount += 1
         self._db.addOrUpdateAccount(a)
         if dg1 is not None:
-            self._log.info("File DG1(surname={} name={}) issued by country '{}' is now tied to pubkey={}"
+            self._log.info("File DG1(surname={} name={}) issued by country '{}' is now tied to eMRTD pubkey={}"
                      .format(dg1.mrz.surname, dg1.mrz.name, dg1.mrz.country, a.aaPublicKey.hex()))
 
         # 7. Return session key and session expiry date
