@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 from pymrtd.pki.x509 import DocumentSignerCertificate
 from .challenge import CID, Challenge
 from .db import StorageAPI
-from .session import SessionKey
+from .session import Session, SessionKey
 from .user import UserId
 
 from database.storage.accountStorage import AccountStorage
@@ -108,14 +108,16 @@ class PassIdProto:
         self._verify_challenge(cid, aaPubKey, csigs, sigAlgo)
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
-        # 4. Insert account into db
-        et = self._get_account_expiration(uid)
+        # 4. Generate session key and session
+        sk = SessionKey.generate()
+        s = Session(sk)
 
-        a = AccountStorage(uid, sod, aaPubKey, sigAlgo, None, et)
+        # 5. Insert account into db
+        et = self._get_account_expiration(uid)
+        a = AccountStorage(uid, sod, aaPubKey, sigAlgo, None, s, et)
         self._db.addOrUpdateAccount(a)
 
-        # 5. Generate dummy session key and return results
-        sk = SessionKey.generate()
+        # 6. Return user id, session key and session expiry date 
         return (uid, sk, et)
 
     def login(self, uid: UserId,  cid: CID, csigs: List[bytes], dg1: ef.DG1 = None) -> Tuple[SessionKey, datetime]:
@@ -157,11 +159,15 @@ class PassIdProto:
         self._verify_challenge(cid, a.getAAPublicKey(), csigs, a.getSigAlgo())
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
-        # 5. Update account
+        # 5. Generate session key and session
+        sk = SessionKey.generate()
+        s = Session(sk)
+        a.setSession(s)
+
+        # 6. Update account
         self._db.addOrUpdateAccount(a)
 
-        # 6. Generate dummy session key and return it
-        sk = SessionKey.generate()
+        # 7. Return session key and session expiry date 
         return (sk, a.validUntil)
 
     def _verify_challenge(self, cid: CID, aaPubKey: AAPublicKey, csigs: List[bytes], sigAlgo: SignatureAlgorithm = None ) -> None:

@@ -159,9 +159,15 @@ class DatabaseAPI(StorageAPI):
         s = self._dbc.getSession()
         accnts = s.query(AccountStorage).filter(AccountStorage.uid == account.uid)
         if accnts.count() > 0:
-            # TODO: update other fields
-            if account.getDG1() != None:
-                accnts[0].setDG1(account.getDG1())
+            accnts[0].uid         = account.uid
+            accnts[0].sod         = account.sod
+            accnts[0].aaPublicKey = account.aaPublicKey
+            accnts[0].sod         = account.sod
+            accnts[0].dg1         = account.dg1
+            accnts[0].session     = account.session
+            accnts[0].validUntil  = account.validUntil
+            accnts[0].loginCount  = account.loginCount
+            accnts[0].isValid     = account.isValid
         else:
             s.add(account)
         s.commit()

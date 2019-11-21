@@ -68,6 +68,7 @@ account = Table('account', metadata,
                             Column('aaPublicKey', LargeBinary, nullable=False),
                             Column('sigAlgo', LargeBinary, nullable=True),
                             Column('dg1', LargeBinary, nullable=True),
+                            Column('session', LargeBinary, nullable=False), # Note: Should be moved to separate table
                             Column('validUntil', DateTime),
                             Column('loginCount', Integer, default=0),
                             Column('isValid', Boolean)

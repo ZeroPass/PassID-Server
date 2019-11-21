@@ -7,6 +7,7 @@
 
 from database.storage.storageManager import Connection
 from APIservice.proto.user import UserId
+from APIservice.proto.session import Session
 
 from pymrtd import ef
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
@@ -25,15 +26,17 @@ class AccountStorage(object):
     _publicKey = None
     _validUntil = None
     _SOD = None
+    _SKey= None 
     _isValid = None
 
-    def __init__(self, uid: UserId, sod: ef.SOD, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], dg1: Union[ef.DG1, None], validUntil: datetime, loginCount: int = 0):
+    def __init__(self, uid: UserId, sod: ef.SOD, aaPublicKey: AAPublicKey, sigAlgo: Union[SignatureAlgorithm, None], dg1: Union[ef.DG1, None], session: Session, validUntil: datetime, loginCount: int = 0):
         """Initialization object"""
         assert isinstance(uid, UserId)
         assert isinstance(sod, ef.SOD)
         assert isinstance(aaPublicKey, AAPublicKey)
         assert isinstance(sigAlgo, (SignatureAlgorithm, type(None)))
         assert isinstance(dg1, (ef.DG1, type(None)))
+        assert isinstance(session, Session)
         assert isinstance(validUntil, datetime)
         assert isinstance(loginCount, int)
 
@@ -47,6 +50,7 @@ class AccountStorage(object):
         self.aaPublicKey = aaPublicKey.dump()
         self.sigAlgo     = sigAlgo
         self.dg1         = dg1
+        self.session     = session.bytes()
         self.validUntil  = validUntil
         self.loginCount  = loginCount
         self.isValid     = True
@@ -68,9 +72,18 @@ class AccountStorage(object):
             return None
         return ef.DG1.load(self.dg1)
 
-    def setDG1(self, dg1: ef.DG1):
-        assert isinstance(dg1, ef.DG1)
-        self.dg1 = dg1.dump()
+    def setDG1(self, dg1:  Union[ef.DG1, None]):
+        assert isinstance(dg1, (ef.DG1, type(None)))
+        if dg1 is not None:
+            dg1 = dg1.dump()
+        self.dg1 = dg1
+
+    def getSession(self) -> Union[Session, None]:
+        return Session.fromBytes(self.session)
+
+    def setSession(self, s: Session):
+        assert isinstance(s, Session)
+        self.session = s.bytes()
 
     def getValidUntil(self) -> datetime:
         return self.validUntil
