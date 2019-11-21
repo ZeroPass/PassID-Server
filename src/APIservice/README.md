@@ -97,12 +97,12 @@ type: bool
 ##Call
 Call from /src folder:
 ```
- python3 srcAPIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME>
+ python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0
 ```
 
 Call from /src folder to run in background:
 ```
-nohup python3 srcAPIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> &  
+nohup python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0 &  
 ```
 ## License
 
