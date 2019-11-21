@@ -146,7 +146,6 @@ class PassIdProto:
 
         # Get account
         a = self._db.getAccount(uid)
-        a.loginCount += 1
 
         # 1. Require DG1 if login count is gt 1
         self._log.debug("Logging-in account with uid={} login_count={}".format(uid.hex(), a.loginCount))
@@ -180,6 +179,7 @@ class PassIdProto:
         a.setSession(s)
 
         # 6. Update account
+        a.loginCount += 1
         self._db.addOrUpdateAccount(a)
         if dg1 is not None:
             self._log.info("File DG1(surname={} name={}) issued by country '{}' is now tied to pubkey={}"
