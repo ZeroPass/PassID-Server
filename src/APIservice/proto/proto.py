@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Tuple, Union
 
-from pymrtd.pki.x509 import DocumentSignerCertificate
+
 from .challenge import CID, Challenge
 from .db import StorageAPI
 from .session import Session, SessionKey
@@ -13,6 +13,7 @@ import log
 
 from pymrtd import ef
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
+from pymrtd.pki.x509 import DocumentSignerCertificate
 
 
 class ProtoError(Exception):
@@ -54,7 +55,9 @@ class PeSigVerifyFailed(ProtoError):
     """ Challenge signature verification error """
     code = 401
 
-
+class PeMacVerifyFailed(ProtoError):
+    """ Session mac verification error """
+    code = 401
 
 
 class PassIdProto:
@@ -169,6 +172,28 @@ class PassIdProto:
 
         # 7. Return session key and session expiry date 
         return (sk, a.validUntil)
+
+    def sayHello(self, uid, mac):
+        """
+        Return greeting message based on whether user being anonymous or not.
+
+        :param uid: User id
+        :param mac: session mac over function name and uid
+        :return: Greeting message
+        """
+
+        a = self._db.getAccount(uid)
+
+        # 1. verify session mac
+        data = "sayHello".encode('ascii') + uid
+        self._verify_session_mac(a, data, mac)
+
+        # 2. return greetings
+        msg = "Hi, anonymous!"
+        dg1 = a.getDG1()
+        if dg1 is not None:
+            msg = "Hi, {} {}!".format(dg1.mrz.surname, dg1.mrz.name)
+        return msg
 
     def _verify_challenge(self, cid: CID, aaPubKey: AAPublicKey, csigs: List[bytes], sigAlgo: SignatureAlgorithm = None ) -> None:
         """
@@ -340,3 +365,26 @@ class PassIdProto:
         # Note: in ideal situation passport expiration date would be read from DG1 file and returned here.
         #       For now we return fix 15day period but should be calculated from the expiration time of DSC who signed accounts SOD.
         return datetime.utcnow() + timedelta(days=15)
+
+    def _verify_session_mac(self, a: AccountStorage, data: bytes, mac: bytes):
+        """
+        Check if mac is valid
+        :raises:
+            PeMacVerifyFailed: If mac is invalid
+        """
+        self._log.debug("Verifying session mac ...")
+
+        s = a.getSession()
+        self._log.verbose("nonce: {}".format(s.nonce))
+        self._log.verbose("data: {}".format(data.hex()))
+        self._log.verbose("mac: {}".format(mac.hex()))
+
+        success = s.verifyMAC(data, mac)
+        self._log.debug("Verifying mac succeeded!")
+
+        # Update account with new session once
+        a.setSession(s)
+        self._db.addOrUpdateAccount(a)
+
+        if not success:
+            raise PeMacVerifyFailed("Invalid session MAC")

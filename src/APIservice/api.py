@@ -156,6 +156,26 @@ class PassIdApiServer:
         except Exception as e:
             return self.__handle_exception(e)
 
+    # API: passID.sayHello
+    @passidapi
+    def sayHello(self, uid: str, mac: str) -> dict:
+        """ 
+        It returns back greeting message based on whether user is anonymous or not.
+
+        :param uid: User id
+        :param mac: session mac over api name and uid
+        :return:
+                 'msg' - greeting message
+        """
+        try:
+            uid = try_deser(lambda: proto.UserId.fromBase64(uid))
+            mac = try_deser(lambda: b64decode(mac))
+            msg = self._proto.sayHello(uid, mac)
+            self._log.debug("Returning greeting '{}' to uid={}".format(msg, uid.hex()))
+            return { "msg": msg }
+        except Exception as e:
+            return self.__handle_exception(e)
+
 # Request handler
     @Request.application
     def __create_calls(self, request):
