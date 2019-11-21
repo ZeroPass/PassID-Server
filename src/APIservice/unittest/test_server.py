@@ -1,10 +1,11 @@
 #!/usr/bin/python
-import argparse, os, ssl, sys, coloredlogs, logging
+import argparse, os, ssl, sys, coloredlogs
 from pathlib import Path
 
 _script_path = Path(os.path.dirname(sys.argv[0]))
 sys.path.append(str(_script_path / Path("../../")))
 
+import log
 from datetime import datetime, timedelta
 from settings import *
 from APIservice.api import PassIdApiServer
@@ -42,41 +43,9 @@ class DevApiServer(PassIdApiServer):
         self._proto = DevProto(db, config.challenge_ttl, fc, no_tcv)
 
 
-def main():
 
-    # Set-up logging
-    coloredlogs.install(level='DEBUG', 
-        fmt='[%(asctime)s] %(name)s %(levelname)s %(message)s', 
-        field_styles={
-            'asctime': {'color': 'white'},
-            'levelname': {'color': 'white', 'bold': True}
-        },
-        level_styles={
-            'critical': {'color': 'red', 'bright': True},
-            'debug': {'color': 'black', 'bright': True},
-            'error': {'color': 'red', 'bright': True, 'bright': True},
-            'info': {},
-            'notice': {'color': 'magenta'},
-            'spam': {'color': 'green', 'faint': True},
-            'success': {'color': 'green', 'bright': True, 'bold': True},
-            'verbose': {'color': 'blue'}, 'warning': {'color': 'yellow'}
-    })
 
-    fh = logging.FileHandler("server.log")
-    fh.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        '[%(asctime)s] %(name)s %(levelname)s %(message)s')
-    fh.setFormatter(formatter)
-
-    l = logging.getLogger("passid.server")
-    l.addHandler(fh)
-
-    l.info("Starting new server session ...")
-    l.debug("run arguments: {}".format(sys.argv[1:]))
-
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    logging.getLogger('urllib3').setLevel(logging.WARNING)
-
+def parse_args():
     # Set-up cmd parameters
     ap = argparse.ArgumentParser()
     ap.add_argument("--challenge-ttl", default=300,
@@ -106,22 +75,77 @@ def main():
     ap.add_argument("-k", "--key", default=str(_script_path / "tls/server_key.pem"),
         type=str, help="server TLS private key")
 
-    ap.add_argument("-m", "--mdb", default=False,
-        type=str, help="use MemoryDB for database. --db-* args will be ignored")
+    ap.add_argument("-log-level", default=0,
+        type=int, help="logging level, [0=verbose, 1=debug, 2=info, 3=warn, 4=error]")
+
+    ap.add_argument("-mdb", default=False,
+        action='store_true', help="use MemoryDB for database. --db-* args will be ignored")
 
     ap.add_argument("-no-tls", default=False,
         action='store_true', help="do not use secure TLS connection")
 
-    ap.add_argument("-p", "--port", default=8080,
+    ap.add_argument("-p", "--port",
         type=int, help="server listening port")
 
     ap.add_argument("-u", "--url", default='0.0.0.0',
         type=str, help="server http address")
 
-
     args = vars(ap.parse_args())
+
+    if args["log_level"] <= 0:
+        args["log_level"] = log.VERBOSE
+    elif args["log_level"] == 1:
+        args["log_level"] = log.DEBUG
+    elif args["log_level"] == 2:
+        args["log_level"] = log.INFO
+    elif args["log_level"] == 3:
+        args["log_level"] = log.WARN
+    elif args["log_level"] >= 4:
+        args["log_level"] = log.ERROR
+
     if args['port'] is None:
         args['port'] = 80 if args['no_tls'] else 443
+
+    return args
+
+def init_log(logLevel, logName='passid.server'):
+    coloredlogs.install(level=log.getLevelName(logLevel), 
+        fmt='[%(asctime)s] %(name)s %(levelname)s %(message)s', 
+        field_styles={
+            'asctime': {'color': 'white'},
+            'levelname': {'color': 'white', 'bold': True}
+        },
+        level_styles={
+            'verbose': {'color': 'black', 'bright': True},
+            'debug': {},
+            'info': {'color': 'cyan', 'bright': True},
+            'warning': {'color': 'yellow'},
+            'error': {'color': 'red', 'bright': True},
+            'critical': {'color': 'red', 'bright': True},
+            'notice': {'color': 'magenta'},
+            'spam': {'color': 'green', 'faint': True},
+            'success': {'color': 'green', 'bright': True, 'bold': True},
+    })
+
+    log.getLogger('requests').setLevel(log.WARN)
+    log.getLogger('urllib3').setLevel(log.WARN)
+
+    fh = log.FileHandler("server.log")
+    fh.setLevel(log.DEBUG)
+    formatter = log.Formatter(
+        '[%(asctime)s] %(name)s %(levelname)s %(message)s')
+    fh.setFormatter(formatter)
+
+    l = log.getLogger(logName)
+    l.addHandler(fh)
+    return l
+
+def main():
+    args = parse_args()
+
+    l = init_log(args['log_level'])
+    l.info("Starting new server session ...")
+    l.debug("run parameters: {}".format(sys.argv[1:]))
 
     ctx = None
     if not args['no_tls']:
