@@ -71,10 +71,12 @@ class PassIdProto:
         now = datetime.utcnow()
         c   = Challenge.generate(now)
         self._db.addChallenge(c, now)
+        self._log.debug("New challenge created cid={}".format(c.id))
         return c
 
     def cancelChallenge(self, cid: CID) -> Union[None, dict]:
         self._db.deleteChallenge(cid)
+        self._log.debug("Challenge was canceled cid={}".format(cid))
 
     def register(self, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[bytes], dg14: ef.DG14 = None) -> Tuple[UserId, SessionKey, datetime]:
         """
@@ -95,7 +97,7 @@ class PassIdProto:
             et = self._db.getAccountExpiry(uid)
             if not self._has_expired(et, datetime.utcnow()):
                 raise PeAccountConflict("Account already registered")
-            self._log.info("Account has expired, registering new credentials")
+            self._log.debug("Account has expired, registering new credentials")
 
         # 2. Verify emrtd trust chain
         self._verify_emrtd_trustchain(sod, dg14, dg15)
@@ -120,7 +122,15 @@ class PassIdProto:
         a = AccountStorage(uid, sod, aaPubKey, sigAlgo, None, s, et)
         self._db.addOrUpdateAccount(a)
 
-        # 6. Return user id, session key and session expiry date 
+        self._log.debug("New account created: uid={}".format(uid.hex()))
+        self._log.verbose("vaild_until={}".format(a.validUntil))
+        self._log.verbose("login_count={}".format(a.loginCount))
+        self._log.verbose("dg1=None")
+        self._log.verbose("pubkey={}".format(a.aaPublicKey.hex()))
+        self._log.verbose("sigAlgo={}".format("None" if dg14 is None else a.sigAlgo.hex()))
+        self._log.verbose("session={}".format(s.bytes().hex()))
+
+        # 6. Return user id, session key and session expiry date
         return (uid, sk, et)
 
     def login(self, uid: UserId,  cid: CID, csigs: List[bytes], dg1: ef.DG1 = None) -> Tuple[SessionKey, datetime]:
@@ -139,14 +149,16 @@ class PassIdProto:
         a.loginCount += 1
 
         # 1. Require DG1 if login count is gt 1
+        self._log.debug("Logging-in account with uid={} login_count={}".format(uid.hex(), a.loginCount))
         if a.loginCount > 1 and a.dg1 is None and dg1 is None:
+            self._log.error("Can't proceed login due to max no. of anonymous logins and no DG1 file provided!")
             raise PePreconditionRequired("File DG1 required")
 
         # 2. If we got DG1 verify SOD contains its hash,
         #    and assign it to the account
         if dg1 is not None:
+            self._log.debug("Verifying SOD contains hash of received file DG1(surname={} name={}) ...".format(dg1.mrz.surname, dg1.mrz.name))
             sod = a.getSOD()
-            self._log.info("Verifying SOD contains hash of received DG1 file")
             if not sod.ldsSecurityObject.contains(dg1):
                 self._log.error("Invalid DG1 file!")
                 raise PePreconditionFailed("Invalid DG1 file")
@@ -169,8 +181,13 @@ class PassIdProto:
 
         # 6. Update account
         self._db.addOrUpdateAccount(a)
+        if dg1 is not None:
+            self._log.info("File DG1(surname={} name={}) issued by country '{}' is now tied to pubkey={}"
+                     .format(dg1.mrz.surname, dg1.mrz.name, dg1.mrz.country, a.aaPublicKey.hex()))
 
-        # 7. Return session key and session expiry date 
+        # 7. Return session key and session expiry date
+        self._log.debug("User has successfully logged-in. uid={} session_expires: {}".format(uid.hex(), a.validUntil))
+        self._log.verbose("session={}".format(s.bytes().hex()))
         return (sk, a.validUntil)
 
     def sayHello(self, uid, mac):
@@ -205,7 +222,7 @@ class PassIdProto:
         """
 
         try:
-            self._log.info("Verifying challenge cid={}".format(cid))
+            self._log.debug("Verifying challenge cid={}".format(cid))
             if aaPubKey.isEcKey() and sigAlgo is None:
                 raise PeMissigParam("Missing param sigAlgo")
 
@@ -247,7 +264,7 @@ class PassIdProto:
         assert isinstance(dg15, ef.DG15)
 
         try:
-            self._log.info("Verifying eMRTD certificate trustchain")
+            self._log.debug("Verifying eMRTD certificate trustchain")
             if dg14 is not None and \
                not sod.ldsSecurityObject.contains(dg14):
                 raise PePreconditionFailed("Invalid DG14 file")
@@ -345,8 +362,6 @@ class PassIdProto:
                 self.DSCtoCSCAvalidate(foundDSC[0])
                 sod.verify()
 
-
-
     def human_friendly(self, issuer: {}):
         """It returns friendly name of issuer Pattern follows format of asn1crypto library"""
         finalStr = ""
@@ -372,7 +387,7 @@ class PassIdProto:
         :raises:
             PeMacVerifyFailed: If mac is invalid
         """
-        self._log.debug("Verifying session mac ...")
+        self._log.debug("Verifying session MAC ...")
 
         s = a.getSession()
         self._log.verbose("nonce: {}".format(s.nonce))
@@ -380,7 +395,7 @@ class PassIdProto:
         self._log.verbose("mac: {}".format(mac.hex()))
 
         success = s.verifyMAC(data, mac)
-        self._log.debug("Verifying mac succeeded!")
+        self._log.debug("MAC successfully verified!")
 
         # Update account with new session once
         a.setSession(s)

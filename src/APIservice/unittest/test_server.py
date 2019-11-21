@@ -108,8 +108,10 @@ def parse_args():
 
     return args
 
-def init_log(logLevel, logName='passid.server'):
+def init_log(logLevel):
+    l = log.getLogger()
     coloredlogs.install(level=log.getLevelName(logLevel), 
+        logger=l, 
         fmt='[%(asctime)s] %(name)s %(levelname)s %(message)s', 
         field_styles={
             'asctime': {'color': 'white'},
@@ -131,19 +133,17 @@ def init_log(logLevel, logName='passid.server'):
     log.getLogger('urllib3').setLevel(log.WARN)
 
     fh = log.FileHandler("server.log")
-    fh.setLevel(log.DEBUG)
+    fh.setLevel(logLevel)
     formatter = log.Formatter(
         '[%(asctime)s] %(name)s %(levelname)s %(message)s')
     fh.setFormatter(formatter)
-
-    l = log.getLogger(logName)
     l.addHandler(fh)
-    return l
 
 def main():
     args = parse_args()
 
-    l = init_log(args['log_level'])
+    init_log(args['log_level'])
+    l = log.getLogger('passid.server')
     l.info("Starting new server session ...")
     l.debug("run parameters: {}".format(sys.argv[1:]))
 

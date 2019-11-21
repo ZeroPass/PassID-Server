@@ -48,7 +48,9 @@ class PassIdApiServer:
     def passidapi(api_f):
         def wrapped_api_f(self, *args, **kwargs):
             self.__log_api_call(api_f, **kwargs)
-            return api_f(self, *args, **kwargs)
+            ret=api_f(self, *args, **kwargs)
+            self.__log_api_response(api_f, ret)
+            return ret
         return wrapped_api_f
 
 # RPC API methods
@@ -61,7 +63,6 @@ class PassIdApiServer:
         """
         try:
             pong = int.from_bytes(os.urandom(4), 'big')
-            self._log.debug("Returning pong={}".format(pong))
             return { "pong": pong }
         except Exception as e:
             return self.__handle_exception(e)
@@ -75,7 +76,6 @@ class PassIdApiServer:
         """
         try:
             c = self._proto.createNewChallenge()
-            self._log.debug("Returning cid={} challenge={}".format(c.id, c.hex()))
             return { "challenge": c.toBase64() }
         except Exception as e:
             return self.__handle_exception(e)
@@ -92,7 +92,6 @@ class PassIdApiServer:
         try:
             challenge = try_deser(lambda: proto.Challenge.fromBase64(challenge))
             self._proto.cancelChallenge(challenge.id)
-            self._log.debug("Challenge was canceled cid={}".format(challenge.id))
             return None
         except Exception as e:
             return self.__handle_exception(e)
@@ -124,7 +123,6 @@ class PassIdApiServer:
                 dg14 = try_deser(lambda: ef.DG14.load(b64decode(dg14)))
 
             uid, sk, set = self._proto.register(dg15, sod, cid, csigs, dg14)
-            self._log.debug("New user has been registered successfully. uid={} session_expires: {}".format(uid.hex(), set))
             return { "uid": uid.toBase64(), "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
             return self.__handle_exception(e)
@@ -150,8 +148,6 @@ class PassIdApiServer:
                 dg1 = try_deser(lambda: ef.DG1.load(b64decode(dg1)))
 
             sk, set = self._proto.login(uid, cid, csigs, dg1)
-            self._log.debug("User has successfully logged-in. uid={} session_expires: {}".format(uid.hex(), set))
-
             return { "session_key": sk.toBase64(), "expires": int(set.timestamp()) }
         except Exception as e:
             return self.__handle_exception(e)
@@ -171,7 +167,6 @@ class PassIdApiServer:
             uid = try_deser(lambda: proto.UserId.fromBase64(uid))
             mac = try_deser(lambda: b64decode(mac))
             msg = self._proto.sayHello(uid, mac)
-            self._log.debug("Returning greeting '{}' to uid={}".format(msg, uid.hex()))
             return { "msg": msg }
         except Exception as e:
             return self.__handle_exception(e)
@@ -215,6 +210,13 @@ class PassIdApiServer:
 
     def __log_api_call(self, f, **kwargs):
         if self._log.level <= log.VERBOSE:
-            self._log.debug(":{}() =>".format(f.__name__))
+            self._log.debug(":{}() ==>".format(f.__name__))
             for a, v in kwargs.items():
                 self._log.verbose(" {}: {}".format(a, v))
+
+    def __log_api_response(self, f, resp: dict):
+        if self._log.level <= log.VERBOSE:
+            self._log.debug(":{}() <==".format(f.__name__))
+            if(resp is not None):
+                for a, v in resp.items():
+                    self._log.verbose(" {}: {}".format(a, v))
