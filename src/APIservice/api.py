@@ -60,7 +60,6 @@ class PassIdApiServer:
         Challenge is base64 encoded.
         """
         try:
-            self._log.debug(":ping(): {}".format(ping))
             pong = int.from_bytes(os.urandom(4), 'big')
             self._log.debug("Returning pong={}".format(pong))
             return { "pong": pong }
@@ -75,7 +74,6 @@ class PassIdApiServer:
         Challenge is base64 encoded.
         """
         try:
-            self._log.debug(":getChallenge(): Got request for challenge")
             c = self._proto.createNewChallenge()
             self._log.debug("Returning cid={} challenge={}".format(c.id, c.hex()))
             return { "challenge": c.toBase64() }
@@ -92,8 +90,6 @@ class PassIdApiServer:
                  Nothing if success, else error
         """
         try:
-            self._log.debug(":cancelChallenge(): Got request to cancel challenge")
-
             challenge = try_deser(lambda: proto.Challenge.fromBase64(challenge))
             self._proto.cancelChallenge(challenge.id)
             self._log.debug("Challenge was canceled cid={}".format(challenge.id))
@@ -120,7 +116,6 @@ class PassIdApiServer:
         """
 
         try:
-            self._log.debug(":register(): Got register request")
             dg15 = try_deser(lambda: ef.DG15.load(b64decode(dg15)))
             sod  = try_deser(lambda: ef.SOD.load(b64decode(sod)))
             cid  = try_deser(lambda: proto.CID.fromhex(cid))
@@ -148,7 +143,6 @@ class PassIdApiServer:
                  'expires'     - unix timestamp of time when session will expire
         """
         try:
-            self._log.debug(":login(): Got login request uid={}".format(uid))
             uid = try_deser(lambda: proto.UserId.fromBase64(uid))
             cid = try_deser(lambda: proto.CID.fromhex(cid))
             csigs = _b64csigs_to_bcsigs(csigs)
@@ -201,6 +195,6 @@ class PassIdApiServer:
 
     def __log_api_call(self, f, **kwargs):
         if self._log.level <= log.VERBOSE:
-            self._log.verbose(":{}() =>".format(f.__name__))
+            self._log.debug(":{}() =>".format(f.__name__))
             for a, v in kwargs.items():
                 self._log.verbose(" {}: {}".format(a, v))
