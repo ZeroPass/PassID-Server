@@ -6,7 +6,20 @@ logging.addLevelName(logging.SUCCESS, 'SUCCESS')
 logging.VERBOSE = 5  # between NOTSET and DEBUG
 logging.addLevelName(logging.VERBOSE, 'VERBOSE')
 
-from logging import VERBOSE, DEBUG, INFO, SUCCESS, WARN, ERROR, FATAL, CRITICAL
+from logging import (
+    FileHandler,
+    Formatter,
+    getLevelName,
+    VERBOSE,
+    DEBUG, 
+    INFO,
+    SUCCESS,
+    WARN,
+    ERROR,
+    FATAL,
+    CRITICAL
+)
+
 
 def getLogger(name = None):
     """
