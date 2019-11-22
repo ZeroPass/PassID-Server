@@ -4,7 +4,7 @@
     License: MIT lincense
     Python Version: 3.6
 '''
-
+from database.storage.storageManager import Connection
 from pymrtd.pki.x509 import CscaCertificate, DocumentSignerCertificate
 import logging
 
@@ -22,17 +22,18 @@ class CSCAStorage(object):
     def __init__(self, csca: CscaCertificate):
         """Initialization class with serialization of DSC"""
         self.serializeCSCA(csca)
-        self.issuer = csca.issuer.human_friendly
+        self.issuer       = csca.issuer.human_friendly
+        self.fingerprint  = csca.fingerprint
+        self.subject      = csca.subject.human_friendly
+        self.subjectKey   = csca.subjectKey
+        self.authorityKey = csca.authorityKey
+        self.thisUpdate   = csca['tbs_certificate']['validity']['not_before'].native
+        self.nextUpdate   = csca['tbs_certificate']['validity']['not_after'].native
+
         try:
             self.serialNumber = str(csca.serial_number)
-        except Exception as e:
+        except:
             self.serialNumber = ""
-        self.fingerprint = csca.fingerprint
-        self.subject = csca.subject.human_friendly
-        self.subjectKey = csca.subjectKey
-        self.authorityKey = csca.authorityKey
-        self.thisUpdate = csca['tbs_certificate']['validity']['not_before'].native
-        self.nextUpdate = csca['tbs_certificate']['validity']['not_after'].native
 
     def serializeCSCA(self, csca: CscaCertificate):
         """Function serialize CSCA object to sequence"""
@@ -40,9 +41,8 @@ class CSCAStorage(object):
 
     def getObject(self) -> CscaCertificate:
         """Returns CSCA object"""
-        return DocumentSignerCertificate.load(self.object)
+        return CscaCertificate.load(self.object)
 
-from database.storage.storageManager import Connection
 
 def writeToDB_CSCA(csca: CscaCertificate, connection: Connection):
     """Write to database with ORM"""
@@ -92,17 +92,17 @@ class DocumentSignerCertificateStorage(object):
     def __init__(self, dsc: DocumentSignerCertificate, issuerCountry: str):
         """Initialization class with serialization of DSC"""
         self.serializeDSC(dsc)
-        self.issuer = dsc.issuer.human_friendly
+        self.issuer       = dsc.issuer.human_friendly
+        self.fingerprint  = dsc.fingerprint
+        self.subject      = dsc.subject.human_friendly
+        self.subjectKey   = dsc.subjectKey
+        self.authorityKey = dsc.authorityKey
+        self.thisUpdate   = dsc['tbs_certificate']['validity']['not_before'].native
+        self.nextUpdate   = dsc['tbs_certificate']['validity']['not_after'].native
         try:
             self.serialNumber = str(dsc.serial_number)
-        except Exception as e:
+        except:
             self.serialNumber = ""
-        self.fingerprint = dsc.fingerprint
-        self.subject = dsc.subject.human_friendly
-        self.subjectKey = dsc.subjectKey
-        self.authorityKey = dsc.authorityKey
-        self.thisUpdate = dsc['tbs_certificate']['validity']['not_before'].native
-        self.nextUpdate = dsc['tbs_certificate']['validity']['not_after'].native
 
     def serializeDSC(self, dsc: DocumentSignerCertificate):
         """Function serialize DSC object to sequence"""
