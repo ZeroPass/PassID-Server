@@ -27,8 +27,8 @@ class CSCAStorage(object):
         self.subject      = csca.subject.human_friendly
         self.subjectKey   = csca.subjectKey
         self.authorityKey = csca.authorityKey
-        self.thisUpdate   = csca['tbs_certificate']['validity']['not_before'].native
-        self.nextUpdate   = csca['tbs_certificate']['validity']['not_after'].native
+        self.thisUpdate   = csca.notValidBefore
+        self.nextUpdate   = csca.notValidAfter
 
         try:
             self.serialNumber = str(csca.serial_number)
@@ -97,8 +97,8 @@ class DocumentSignerCertificateStorage(object):
         self.subject      = dsc.subject.human_friendly
         self.subjectKey   = dsc.subjectKey
         self.authorityKey = dsc.authorityKey
-        self.thisUpdate   = dsc['tbs_certificate']['validity']['not_before'].native
-        self.nextUpdate   = dsc['tbs_certificate']['validity']['not_after'].native
+        self.thisUpdate   = dsc.notValidBefore
+        self.nextUpdate   = dsc.notValidAfter
         try:
             self.serialNumber = str(dsc.serial_number)
         except:
