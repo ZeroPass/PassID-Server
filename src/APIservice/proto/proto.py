@@ -121,7 +121,7 @@ class PassIdProto:
         s  = Session(sk)
 
         # 5. Insert account into db
-        et = self.__get_default_account_expiration()
+        et = self._get_default_account_expiration()
         a = AccountStorage(uid, sod, aaPubKey, sigAlgo, None, s, et)
         self._db.addOrUpdateAccount(a)
 
@@ -405,7 +405,7 @@ class PassIdProto:
             raise PePreconditionFailed("Invalid {} file".format(dg.number.native))
         self._log.debug("{} file is valid!".format(dg.number.native))
 
-    def __get_default_account_expiration(self):
+    def _get_default_account_expiration(self):
         """ Returns until the session is valid. """
         # Note: in ideal situation passport expiration date would be read from DG1 file and returned here.
         #       For now we return fix 10min period but should be calculated from the expiration time of DSC who signed the account's SOD.
