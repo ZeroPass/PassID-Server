@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import List, Tuple, Union
 
+from asn1crypto.x509 import Name
 
 from .challenge import CID, Challenge
 from .user import UserId
@@ -22,6 +23,7 @@ from database.storage.storageManager import Connection
 from database.storage.challengeStorage import * 
 from database.storage.accountStorage import AccountStorage, AccountStorageError
 from database.storage.x509Storage import DocumentSignerCertificateStorage, CSCAStorage
+
 
 class StorageAPIError(Exception):
     pass
@@ -81,21 +83,21 @@ class StorageAPI(ABC):
         pass
 
     @abstractmethod
-    def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
+    def getDSCbySerialNumber(self, issuer: Name, serialNumber: int) -> Union[x509.DocumentSignerCertificate, None]:
         """Get DSC"""
         pass
 
     @abstractmethod
-    def getDSCbySubjectKey(self, subjectKey: bytes):
+    def getDSCbySubjectKey(self, subjectKey: bytes) -> Union[x509.DocumentSignerCertificate, None]:
         """Get DSC"""
         pass
 
     @abstractmethod
-    def getCSCAbySerialNumber(self, issuer: str, serialNumber: str):
+    def getCSCAbySubject(self, subject: Name) -> Union[x509.CscaCertificate, None]:
         pass
 
     @abstractmethod
-    def getCSCAbySubjectKey(self, subjectKey: bytes):
+    def getCSCAbySubjectKey(self, subjectKey: bytes) -> Union[x509.CscaCertificate, None]:
         """Get CSCA"""
         pass
 
@@ -121,7 +123,6 @@ class DatabaseAPI(StorageAPI):
             DatabaseAPIError: If challenge is not found
         """
         assert isinstance(cid, CID)
-
         result = self._dbc.getSession() \
            .query(ChallengeStorage) \
            .filter(ChallengeStorage.id == str(cid)) \
@@ -156,6 +157,7 @@ class DatabaseAPI(StorageAPI):
         return True if self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).count() > 0 else False
 
     def addOrUpdateAccount(self, account: AccountStorage) -> None:
+        assert isinstance(account, AccountStorage)
         s = self._dbc.getSession()
         accnts = s.query(AccountStorage).filter(AccountStorage.uid == account.uid)
         if accnts.count() > 0:
@@ -173,6 +175,7 @@ class DatabaseAPI(StorageAPI):
         s.commit()
 
     def getAccount(self, uid: UserId) -> AccountStorage:
+        assert isinstance(uid, UserId)
         accounts = self._dbc.getSession().query(AccountStorage).filter(AccountStorage.uid == uid).all()
         if len(accounts) == 0:
             self._log.debug(":getAccountExpiry(): Account not found")
@@ -195,27 +198,57 @@ class DatabaseAPI(StorageAPI):
         assert isinstance(items[0].getValidUntil(), datetime)
         return items[0].getValidUntil()
 
-    def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
-        """Get DSC"""
-        items = self._dbc.getSession().query(DocumentSignerCertificateStorage).filter(DocumentSignerCertificateStorage.issuer == issuer,
-                                                                                      DocumentSignerCertificateStorage.serialNumber == serialNumber).all()
-        return items
+    def getDSCbySerialNumber(self, issuer: Name, serialNumber: int) -> Union[x509.DocumentSignerCertificate, None]:
+        """ Get DSC by it's issuer and serial number. """
+        assert isinstance(issuer, Name)
+        assert isinstance(serialNumber, int)
+        items = self._dbc.getSession() \
+            .query(DocumentSignerCertificateStorage) \
+            .filter(DocumentSignerCertificateStorage.issuer == issuer.human_friendly, \
+                DocumentSignerCertificateStorage.serialNumber == str(serialNumber) \
+            ).all()
 
-    def getDSCbySubjectKey(self, subjectKey: bytes):
-        """Get DSC"""
-        items = self._dbc.getSession().query(DocumentSignerCertificateStorage).filter(DocumentSignerCertificateStorage.subjectKey == subjectKey).all()
-        return items
+        if len(items) == 0:
+            return None
+        return items[0].getObject()
 
-    def getCSCAbySerialNumber(self, issuer: str, serialNumber: str):
-        """Get CSCA certificate"""
-        items = self._dbc.getSession().query(CSCAStorage).filter(CSCAStorage.issuer == issuer,
-                                                                 CSCAStorage.serialNumber == serialNumber).all()
-        return items
+    def getDSCbySubjectKey(self, subjectKey: bytes) -> Union[x509.DocumentSignerCertificate, None]:
+        """ Get DSC by it's subject key. """
+        assert isinstance(subjectKey, bytes)
+        items = self._dbc.getSession() \
+            .query(DocumentSignerCertificateStorage) \
+            .filter(DocumentSignerCertificateStorage.subjectKey == subjectKey) \
+            .all()
 
-    def getCSCAbySubjectKey(self, subjectKey: bytes):
-        """Get DSC"""
-        items = self._dbc.getSession().query(CSCAStorage).filter(CSCAStorage.subjectKey == subjectKey).all()
-        return items
+        if len(items) == 0:
+            return None
+        return items[0].getObject()
+
+    def getCSCAbySubject(self, subject: Name) -> Union[x509.CscaCertificate, None]:
+        """ Get CSCA by it's issuer and serial number. """
+        assert isinstance(issuer, Name)
+        assert isinstance(serialNumber, int)
+        items = self._dbc.getSession() \
+            .query(CSCAStorage) \
+            .filter(CSCAStorage.subject == subject.human_friendly) \
+            .all()
+
+        if len(items) == 0:
+            return None
+        return items[0].getObject()
+
+    def getCSCAbySubjectKey(self, subjectKey: bytes) -> Union[x509.CscaCertificate, None]:
+        """ Get CSCA by it's subject key. """
+        assert isinstance(subjectKey, bytes)
+        items = self._dbc.getSession() \
+            .query(CSCAStorage) \
+            .filter(CSCAStorage.subjectKey == subjectKey) \
+            .all()
+
+        if len(items) == 0:
+            return None
+        return items[0].getObject()
+
 
 class MemoryDBError(StorageAPIError):
     pass
@@ -225,8 +258,8 @@ class MemoryDB(StorageAPI):
         self._d = {
             'proto_challenges' : {},
             'accounts' : {},
-            'cscas' : {},
-            'dscs' : {},
+            'cscas' : set(),
+            'dscs' : set(),
         }
 
     def getChallenge(self, cid: CID) -> Tuple[Challenge, datetime]:
@@ -239,17 +272,21 @@ class MemoryDB(StorageAPI):
         :raises:
             MemoryDBError: If challenge is not found
         """
+        assert isinstance(cid, CID)
         try:
             return self._d['proto_challenges'][cid]
         except Exception as e:
             raise SeEntryNotFound("Challenge not found") from e
 
     def addChallenge(self, challenge: Challenge, timedate: datetime) -> None:
+        assert isinstance(challenge, Challenge)
+        assert isinstance(timedate, datetime)
         if challenge.id in self._d['proto_challenges']:
             raise MemoryDBError("Challenge already exists")
         self._d['proto_challenges'][challenge.id] = (challenge, timedate)
 
     def deleteChallenge(self, cid: CID) -> None:
+        assert isinstance(cid, CID)
         if cid in self._d['proto_challenges']:
             del self._d['proto_challenges'][cid]
 
@@ -279,38 +316,43 @@ class MemoryDB(StorageAPI):
         a = self.getAccount(uid)
         return a.validUntil
 
-    def getDSCbySerialNumber(self, issuer: str, serialNumber: str):
+    def getDSCbySerialNumber(self, issuer: Name, serialNumber: int) -> Union[x509.DocumentSignerCertificate, None]:
         """Get DSC"""
+        assert isinstance(issuer, Name)
+        assert isinstance(serialNumber, int)
         for dsc in self._d['dscs']:
-            if dsc.issuer.native == issuer and dsc.serialNumber == serialNumber:
+            if dsc.issuer == issuer and dsc.serial_number == serialNumber:
                 return dsc
         return None
 
-    def getDSCbySubjectKey(self, subjectKey: bytes):
+    def getDSCbySubjectKey(self, subjectKey: bytes) -> Union[x509.DocumentSignerCertificate, None]:
         """Get DSC"""
+        assert isinstance(subjectKey, bytes)
         for dsc in self._d['dscs']:
             if dsc.subjectKey == subjectKey:
                 return dsc
         return None
 
-    def getCSCAbySerialNumber(self, issuer: str, serialNumber: str):
+    def getCSCAbySubject(self, subject: Name)-> Union[x509.CscaCertificate, None]:
         """Get CSCA"""
+        assert isinstance(subject, Name)
         for csca in self._d['cscas']:
-            if csca.issuer.native == issuer and csca.serialNumber == serialNumber:
+            if csca.subject == subject:
                 return csca
         return None
 
-    def getCSCAbySubjectKey(self, subjectKey: bytes):
+    def getCSCAbySubjectKey(self, subjectKey: bytes) -> Union[x509.CscaCertificate, None]:
         """Get CSCA"""
+        assert isinstance(subjectKey, bytes)
         for csca in self._d['cscas']:
             if csca.subjectKey == subjectKey:
-                return dsc
+                return csca
         return None
 
-    def updateAccountDG1(self, uid: UserId, dg1: ef.DG1):
-        if uid not in self._d['accounts']:
-            raise SeEntryNotFound("Account not found")
-        accnt = self._d['accounts'][uid]
-        accnt = list(accnt)
-        accnt[4] = dg1
-        self._d['accounts'][uid] = tuple(accnt)
+    def addCscaCertificate(self, csca: x509.CscaCertificate):
+        assert isinstance(csca, x509.CscaCertificate)
+        self._d['cscas'].add(csca)
+
+    def addDscCertificate(self, dsc: x509.DocumentSignerCertificate):
+        assert isinstance(dsc, x509.DocumentSignerCertificate)
+        self._d['dscs'].add(dsc)

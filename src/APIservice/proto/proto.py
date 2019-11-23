@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Tuple, Union
 
+from asn1crypto.x509 import Name
 
 from .challenge import CID, Challenge
 from .db import StorageAPI
@@ -13,7 +14,7 @@ import log
 
 from pymrtd import ef
 from pymrtd.pki.keys import AAPublicKey, SignatureAlgorithm
-from pymrtd.pki.x509 import DocumentSignerCertificate
+from pymrtd.pki.x509 import Certificate, CscaCertificate, DocumentSignerCertificate
 
 
 class ProtoError(Exception):
@@ -59,6 +60,8 @@ class PeMacVerifyFailed(ProtoError):
     """ Session mac verification error """
     code = 401
 
+def currentTime():
+    return datetime.utcnow()
 
 class PassIdProto:
 
@@ -68,7 +71,7 @@ class PassIdProto:
         self._log = log.getLogger("passid.proto")
 
     def createNewChallenge(self) -> Challenge:
-        now = datetime.utcnow()
+        now = currentTime()
         c   = Challenge.generate(now)
         self._db.addChallenge(c, now)
         self._log.debug("New challenge created cid={}".format(c.id))
@@ -95,11 +98,11 @@ class PassIdProto:
 
         if self._db.accountExists(uid):
             et = self._db.getAccountExpiry(uid)
-            if not self._has_expired(et, datetime.utcnow()):
+            if not self._has_expired(et, currentTime()):
                 raise PeAccountConflict("Account already registered")
             self._log.debug("Account has expired, registering new credentials")
 
-        # 2. Verify emrtd trust chain
+        # 2. Verify emrtd PKI trust chain
         self._verify_emrtd_trustchain(sod, dg14, dg15)
         
         # 3. Verify challenge authentication
@@ -115,7 +118,7 @@ class PassIdProto:
 
         # 4. Generate session key and session
         sk = SessionKey.generate()
-        s = Session(sk)
+        s  = Session(sk)
 
         # 5. Insert account into db
         et = self._get_account_expiration(uid)
@@ -123,6 +126,8 @@ class PassIdProto:
         self._db.addOrUpdateAccount(a)
 
         self._log.debug("New account created: uid={}".format(uid.hex()))
+        if len(sod.dsCertificates) > 0:
+            self._log.debug("Issuing country of account's eMRTD: {}".format(sod.dsCertificates[0].issuerCountry))
         self._log.verbose("vaild_until={}".format(a.validUntil))
         self._log.verbose("login_count={}".format(a.loginCount))
         self._log.verbose("dg1=None")
@@ -143,7 +148,6 @@ class PassIdProto:
         :param dg1: (Optional) eMRTD DataGroup file 1
         :return: Tuple of session key and session expiration time
         """
-
         # Get account
         a = self._db.getAccount(uid)
 
@@ -156,17 +160,13 @@ class PassIdProto:
         # 2. If we got DG1 verify SOD contains its hash,
         #    and assign it to the account
         if dg1 is not None:
-            self._log.debug("Verifying SOD contains hash of received file DG1(surname={} name={}) ...".format(dg1.mrz.surname, dg1.mrz.name))
+            self._log.debug("Verifying received DG1(surname={} name={}) file is valid ...".format(dg1.mrz.surname, dg1.mrz.name))
             sod = a.getSOD()
-            if not sod.ldsSecurityObject.contains(dg1):
-                self._log.error("Invalid DG1 file!")
-                raise PePreconditionFailed("Invalid DG1 file")
-            else:
-                self._log.success("Valid DG1 file!")
-                a.setDG1(dg1)
+            self.__verify_sod_contains_hash_of(sod, dg1)
+            a.setDG1(dg1)
 
         # 3. Verify account credentials haven't expired
-        if self._has_expired(a.validUntil, datetime.utcnow()):
+        if self._has_expired(a.validUntil, currentTime()):
             raise PeCredentialsExpired("Account has expired")
 
         # 4. Verify challenge
@@ -175,7 +175,7 @@ class PassIdProto:
 
         # 5. Generate session key and session
         sk = SessionKey.generate()
-        s = Session(sk)
+        s  = Session(sk)
         a.setSession(s)
 
         # 6. Update account
@@ -198,7 +198,7 @@ class PassIdProto:
         :param mac: session mac over function name and uid
         :return: Greeting message
         """
-
+        # Get account
         a = self._db.getAccount(uid)
 
         # 1. verify session mac
@@ -226,16 +226,16 @@ class PassIdProto:
             if aaPubKey.isEcKey() and sigAlgo is None:
                 raise PeMissigParam("Missing param sigAlgo")
 
-            c, t = self._db.getChallenge(cid)
+            c, cet = self._db.getChallenge(cid)
 
             # Verify challenge expiration time
             def get_past(datetime: datetime):
                 datetime = datetime.replace(tzinfo=None)
                 return datetime - timedelta(seconds=self.cttl)
 
-            ret = get_past(datetime.utcnow())
-            t = t.replace(tzinfo=None)
-            if self._has_expired(t, ret):
+            ret = get_past(currentTime())
+            cet = cet.replace(tzinfo=None)
+            if self._has_expired(cet, ret):
                 self._db.deleteChallenge(cid)
                 raise PeChallengeExpired("Challenge has expired")
 
@@ -258,128 +258,158 @@ class PassIdProto:
         Verify eMRTD trust chain from eMRTD SOD to issuing CSCA 
         :raises: An exception is risen if any part of trust chain verification fails
         """
-
         assert isinstance(sod, ef.SOD)
         assert isinstance(dg14, (ef.DG14, type(None)))
         assert isinstance(dg15, ef.DG15)
 
         try:
-            self._log.debug("Verifying eMRTD certificate trustchain")
-            if dg14 is not None and \
-               not sod.ldsSecurityObject.contains(dg14):
-                raise PePreconditionFailed("Invalid DG14 file")
+            self._log.info("Verifying eMRTD trust chain ...")
+            if dg14 is not None:
+                self.__verify_sod_contains_hash_of(sod, dg14)
 
-            if not sod.ldsSecurityObject.contains(dg15):
-                raise PePreconditionFailed("Invalid DG15 file")
-
-            self.validateCertificatePath(sod)
-            self._log.success("eMRTD certificate trustchain was successfully verified!")
+            self.__verify_sod_contains_hash_of(sod, dg15)
+            self.__validate_certificate_path(sod)
+            self._log.success("eMRTD trust chain was successfully verified!")
         except:
-            self._log.error("Failed to verify eMRTD certificate trustchain!")
+            self._log.error("Failed to verify eMRTD certificate trust chain!")
             raise
 
-    def getDSCbyIsserAndSerialNumber(self, issuer: str, serialNumber: int, sodCertificates) -> ():
-        """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""
-        DSCinSod = None
-        DSCinDatabase = None
-        for item in sodCertificates:
-            if item.serial_number == serialNumber and item.issuer.human_friendly == issuer:
-                DSCinSod = item
-                break
-        #item not found in SOD file, try to find it in database
-        dbItem = self._db.getDSCbySerialNumber(issuer, str(serialNumber))
-        if len(dbItem)> 0:
-            DSCinDatabase = dbItem[0]
-        return (DSCinSod, DSCinDatabase)
+    def __get_dsc_by_isser_and_serial_number(self, issuer: Name, serialNumber: int, sod: ef.SOD) -> Tuple[Union[DocumentSignerCertificate, None], bool]:
+        """
+        Get DSC from SOD or from database if not found ind SOD.
+        :param issuer:
+        :param serialNumber:
+        :param sod:
+        :return: Pair of DSC/None and boolean whether DSC should be validated to CSCA certificate.
+                 Note: DSC should be validated to CSCA only if DSC is found in SOD file.
+                       DSC found in DB should be considered already validated.
+        """
+        # Try to find DSC in database
+        dsc = self._db.getDSCbySerialNumber(issuer, serialNumber)
+        if dsc is not None:
+            return (dsc, False)
 
-    def getDSCbySubjectKey(self, subjectKey: bytes, sodCertificates) -> []:
-        """Get DSC from SOD or from database if SOD is empty. It returns certificates in SOD and database."""
-        DSCinSod = None
-        DSCinDatabase = None
-        for item in sodCertificates:
-            if item.key_identifier == subjectKey:
-                DSCinSod = item
-                break
-        # item not found in SOD file, try to find it in database
-        dbItem = self._db.getDSCbySubjectKey(subjectKey)
-        if len(dbItem) > 0:
-            DSCinDatabase = dbItem[0]
-        return (DSCinSod, DSCinDatabase)
+        # DSC not found in database, try to find it in SOD file
+        for dsc in sod.dsCertificates:
+            if dsc.serial_number == serialNumber and dsc.issuer == issuer:
+                return (dsc, True) # DSC should be validated to issuing CSCA
+        return (None, False)
 
-    def getCSCAByIssuerAndSerialNumber(self, issuer: str, serialNumber: int,):
-        return self._db.getCSCAbySerialNumber(issuer, str(serialNumber))
+    def __get_dsc_by_subject_key(self, subjectKey: bytes, sod: ef.SOD) -> Tuple[Union[DocumentSignerCertificate, None], bool]:
+        """
+        Get DSC from SOD or from database if not found ind SOD.
+        :param subjectKey:
+        :param sod:
+        :return: Pair of DSC/None and boolean whether DSC should be validated to CSCA certificate.
+                 Note: DSC should be validated to CSCA only if DSC is found in SOD file.
+                       DSC found in DB should be considered as already validated.
+        """
+        # Try to find DSC in database
+        dsc = self._db.getDSCbySubjectKey(subjectKey)
+        if dsc is not None:
+            return (dsc, False)
 
-    def getCSCABySubjectKey(self, subjectKey: bytes):
-        return self._db.getCSCAbySubjectKey(subjectKey)
+        # DSC not found in database, try to find it in SOD file
+        for dsc in sod.dsCertificates:
+            if dsc.subjectKey == subjectKey:
+                return (dsc, True) # DSC should be validated to issuing CSCA
+        return (None, False)
 
-    def DSCtoCSCAvalidate(self, dsc: DocumentSignerCertificate):
-        """Find CSCA and validate it"""
-        if dsc.isValidOn(datetime.utcnow()) == False:
-            raise PePreconditionFailed("DSC not valid anymore")
+    def __validate_dsc_to_csca(self, dsc: DocumentSignerCertificate):
+        """ Find DSC's issuing CSCA and validate DSC with it. """
+        # 1. Get CSCA that issued DSC
+        csca = None
+        dsc_auth_key = dsc.authorityKey
+        if dsc_auth_key is not None:
+            self._log.verbose("Trying to find CSCA in DB by subject key. DSC auth_key={}".format(dsc_auth_key.hex()))
+            csca = self._db.getCSCAbySubjectKey(dsc_auth_key)
+            if csca is None: self._log.verbose("CSCA not found by DSC auth_key!")
 
-        csca = self.getCSCAByIssuerAndSerialNumber(dsc.issuer.human_friendly, dsc.serial_number) + \
-               self.getCSCABySubjectKey(dsc.authorityKey)
-        if len(csca) == 0:
+        if csca is None:
+            self._log.verbose("Trying to find CSCA in DB by DSC issuer field: [{}]".format(dsc.issuer.human_friendly))
+            csca = self._db.getCSCAbySubject(dsc.issuer) 
+
+        if csca is None:
+            self._log.error("CSCA not found!")
             raise PePreconditionFailed("CSCA not found")
+        self._log.verbose("Found CSCA fp={} county={}".format(csca.fingerprint[0:8], csca.issuerCountry))
 
-        obj = csca[0].getObject()
-        # verify CSCA
-        dsc.verify(obj)
+        # 2. Verify CSCA expiration time
+        self._log.verbose("Verifying CSCA expiration time. {}".format(self.__format_cert_et(csca)))
+        if not csca.isValidOn(currentTime()):
+            self._log.error("CSCA has expired!")
+            raise PePreconditionFailed("CSCA has expired")
 
-    def validateCertificatePath(self, sod: ef.SOD):
+        # 3. verify CSCA really issued DSC
+        self._log.verbose("Verifying CSCA issued DSC ...")
+        dsc.verify(issuing_cert=csca)
+
+    def __validate_certificate_path(self, sod: ef.SOD):
         """Verification of issuer certificate from SOD file"""
+        self._log.debug("Validating path CSCA => DSC => SOD ...")
         assert isinstance(sod, ef.SOD)
 
-        includedDSC = sod.dsCertificates
-
+        # Get DSCs certificates that signed SOD file. DSC is also validated to CSCA trust chain if necessary.
+        dscs = []
         for sidx, signer in enumerate(sod.signers):
-            foundDSC = (None, None)
             if signer.name == "issuer_and_serial_number":
                 #sni = signer['sid'].chosen
-                foundDSC = self.getDSCbyIsserAndSerialNumber(self.human_friendly(signer.native["issuer"]),
-                                                             signer.native["serial_number"], includedDSC)
+                signer = signer.chosen
+                issuer = signer["issuer"]
+                serial = signer["serial_number"].native
+                self._log.verbose("Getting DSC which signed SOD by serial no.: {} and issuer: [{}]".format(serial, issuer.human_friendly))
+                dsc, validateDSC = self.__get_dsc_by_isser_and_serial_number(
+                    issuer,
+                    serial,
+                    sod
+                )
             elif signer.name == "subject_key_identifier":
                 keyid = signer.native
-                foundDSC = self.getDSCbySubjectKey(keyid, includedDSC)
+                self._log.verbose("Getting DSC which signed SOD by subject_key={}".format(keyid.hex()))
+                dsc, validateDSC = self.__get_dsc_by_subject_key(keyid, sod)
             else:
-                raise PePreconditionFailed("Unknown connection type to DSC ")
+                raise PePreconditionFailed("Unknown connection path from SOD to DSC")
 
-            if foundDSC[0] == None and foundDSC[1] == None:
+            if dsc is None:
                 raise PePreconditionFailed("No DSC found")
 
-            if foundDSC[0] == None:
-                """no DSC found in SOD object, but found in database"""
-                self.DSCtoCSCAvalidate(foundDSC[1].getObject())
-                sod.verify(foundDSC[1].getObject())
+            self._log.verbose("Got DSC fp={} issuer_country={}, validating path to CSCA required: {}".format(dsc.fingerprint[0:8], dsc.issuerCountry, validateDSC))
+            self._log.verbose("Verifying DSC expiration time. {}".format(self.__format_cert_et(dsc)))
+            if not dsc.isValidOn(currentTime()):
+                raise PePreconditionFailed("DSC has expired")
+            elif validateDSC:
+                self.__validate_dsc_to_csca(dsc) # validate CSCA has issued DSC
+            dscs.append(dsc)
 
-            elif foundDSC[1] == None:
-                """no DSC found in database, but found in SOD"""
-                self.DSCtoCSCAvalidate(foundDSC[0])
-                sod.verify()
+        # Verify DSCs signed SOD file
+        self._log.verbose("Verifying DSC issued SOD ...")
+        sod.verify(issuer_dsc_certs=dscs)
 
-            else:
-                """ DSC found in SOD and database - same DSC"""
-                self.DSCtoCSCAvalidate(foundDSC[0])
-                sod.verify()
+    def __verify_sod_contains_hash_of(self, sod: ef.SOD, dg: ef.DataGroup):
+        assert isinstance(sod, ef.SOD)
+        assert isinstance(dg, ef.DataGroup)
 
-    def human_friendly(self, issuer: {}):
-        """It returns friendly name of issuer Pattern follows format of asn1crypto library"""
-        finalStr = ""
-        #add common name
-        finalStr += "Common Name: " + issuer["common_name"]
-        #add organizational unit
-        finalStr += ", Organizational Unit: " + issuer["organizational_unit_name"]
-        #add organization
-        finalStr += ", Organization: " + issuer["organization_name"]
-        # add organization
-        finalStr += ", Country: " + issuer["country_name"]
-        return finalStr
+        self._log.debug("Verifying SOD contains matching hash of {} file ...".format(dg.number.native))
+        if self._log.getEffectiveLevel() <= log.VERBOSE:
+            sod_dghv = sod.ldsSecurityObject.dgHashes.find(dg.number)
+            self._log.verbose("SOD contains hash of {} file: {}".format(dg.number.native, (sod_dghv is not None)))
+            if sod_dghv is not None:
+                hash_algo = sod.ldsSecurityObject.dgHashAlgo['algorithm'].native
+                self._log.verbose("{} hash value of {} file in SOD: {}".format(hash_algo, dg.number.native, sod_dghv.hash.hex()))
+                h = sod.ldsSecurityObject.getDgHasher()
+                h.update(dg.dump())
+                self._log.verbose("Actual {} hash value of {} file: {}".format(hash_algo, dg.number.native, h.finalize().hex()))
+
+        # Validation of dg hash value in SOD
+        if not sod.ldsSecurityObject.contains(dg):
+            raise PePreconditionFailed("Invalid {} file".format(dg.number.native))
+        self._log.debug("{} file is valid!".format(dg.number.native))
 
     def _get_account_expiration(self, uid: UserId):
         """ Returns until the session is valid. """
         # Note: in ideal situation passport expiration date would be read from DG1 file and returned here.
         #       For now we return fix 15day period but should be calculated from the expiration time of DSC who signed accounts SOD.
-        return datetime.utcnow() + timedelta(days=15)
+        return currentTime() + timedelta(days=15)
 
     def _verify_session_mac(self, a: AccountStorage, data: bytes, mac: bytes):
         """
@@ -403,3 +433,6 @@ class PassIdProto:
 
         if not success:
             raise PeMacVerifyFailed("Invalid session MAC")
+
+    def __format_cert_et(self, cert: Certificate):
+        return "nvb=[{}] nva=[{}] now=[{}]".format(cert.notValidBefore, cert.notValidAfter, currentTime())
