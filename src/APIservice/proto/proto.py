@@ -98,12 +98,12 @@ class PassIdProto:
 
         if self._db.accountExists(uid):
             et = self._db.getAccountExpiry(uid)
-            if not self._has_expired(et, currentTime()):
+            if not self.__has_expired(et, currentTime()):
                 raise PeAccountConflict("Account already registered")
             self._log.debug("Account has expired, registering new credentials")
 
         # 2. Verify emrtd PKI trust chain
-        self._verify_emrtd_trustchain(sod, dg14, dg15)
+        self.__verify_emrtd_trustchain(sod, dg14, dg15)
         
         # 3. Verify challenge authentication
         sigAlgo = None
@@ -113,7 +113,7 @@ class PassIdProto:
         if aaPubKey.isEcKey() and dg14 is None:
             raise PePreconditionRequired("DG14 required")
 
-        self._verify_challenge(cid, aaPubKey, csigs, sigAlgo)
+        self.__verify_challenge(cid, aaPubKey, csigs, sigAlgo)
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
         # 4. Generate session key and session
@@ -121,7 +121,7 @@ class PassIdProto:
         s  = Session(sk)
 
         # 5. Insert account into db
-        et = self._get_account_expiration(uid)
+        et = self.__get_account_expiration(uid)
         a = AccountStorage(uid, sod, aaPubKey, sigAlgo, None, s, et)
         self._db.addOrUpdateAccount(a)
 
@@ -166,11 +166,11 @@ class PassIdProto:
             a.setDG1(dg1)
 
         # 3. Verify account credentials haven't expired
-        if self._has_expired(a.validUntil, currentTime()):
+        if self.__has_expired(a.validUntil, currentTime()):
             raise PeCredentialsExpired("Account has expired")
 
         # 4. Verify challenge
-        self._verify_challenge(cid, a.getAAPublicKey(), csigs, a.getSigAlgo())
+        self.__verify_challenge(cid, a.getAAPublicKey(), csigs, a.getSigAlgo())
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
 
         # 5. Generate session key and session
@@ -203,7 +203,7 @@ class PassIdProto:
 
         # 1. verify session mac
         data = "sayHello".encode('ascii') + uid
-        self._verify_session_mac(a, data, mac)
+        self.__verify_session_mac(a, data, mac)
 
         # 2. return greetings
         msg = "Hi, anonymous!"
@@ -212,7 +212,7 @@ class PassIdProto:
             msg = "Hi, {} {}!".format(dg1.mrz.surname, dg1.mrz.name)
         return msg
 
-    def _verify_challenge(self, cid: CID, aaPubKey: AAPublicKey, csigs: List[bytes], sigAlgo: SignatureAlgorithm = None ) -> None:
+    def __verify_challenge(self, cid: CID, aaPubKey: AAPublicKey, csigs: List[bytes], sigAlgo: SignatureAlgorithm = None ) -> None:
         """
         Check if signature is correct and the time frame is OK
         :raises:
@@ -235,7 +235,7 @@ class PassIdProto:
 
             ret = get_past(currentTime())
             cet = cet.replace(tzinfo=None)
-            if self._has_expired(cet, ret):
+            if self.__has_expired(cet, ret):
                 self._db.deleteChallenge(cid)
                 raise PeChallengeExpired("Challenge has expired")
 
@@ -250,10 +250,10 @@ class PassIdProto:
             self._log.error("Challenge verification failed!")
             raise
 
-    def _has_expired(self, t1: datetime, t2: datetime):
+    def __has_expired(self, t1: datetime, t2: datetime):
         return t1 < t2
 
-    def _verify_emrtd_trustchain(self, sod: ef.SOD, dg14: Union[ef.DG14, None], dg15: ef.DG15) -> None:
+    def __verify_emrtd_trustchain(self, sod: ef.SOD, dg14: Union[ef.DG14, None], dg15: ef.DG15) -> None:
         """"
         Verify eMRTD trust chain from eMRTD SOD to issuing CSCA 
         :raises: An exception is risen if any part of trust chain verification fails
@@ -405,13 +405,13 @@ class PassIdProto:
             raise PePreconditionFailed("Invalid {} file".format(dg.number.native))
         self._log.debug("{} file is valid!".format(dg.number.native))
 
-    def _get_account_expiration(self, uid: UserId):
+    def __get_account_expiration(self, uid: UserId):
         """ Returns until the session is valid. """
         # Note: in ideal situation passport expiration date would be read from DG1 file and returned here.
         #       For now we return fix 15day period but should be calculated from the expiration time of DSC who signed accounts SOD.
         return currentTime() + timedelta(days=15)
 
-    def _verify_session_mac(self, a: AccountStorage, data: bytes, mac: bytes):
+    def __verify_session_mac(self, a: AccountStorage, data: bytes, mac: bytes):
         """
         Check if mac is valid
         :raises:
