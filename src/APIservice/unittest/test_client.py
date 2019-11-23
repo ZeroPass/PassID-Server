@@ -80,13 +80,14 @@ def requestRegister(url: str, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[
     et  = datetime.utcfromtimestamp(result['expires'])
     return (uid, Session(sk), et)
 
-def requestLogin(url: str, uid: UserId, cid: CID, csigs: List[bytes]):
+def requestLogin(url: str, uid: UserId, cid: CID, csigs: List[bytes], dg1 = None):
     payload = {
         "method": "passID.login",
         "params": {
             "uid"  : uid.toBase64(),
             "cid"   : cid.hex(),
             "csigs" : bsigs_to_b64sigs(csigs),
+            "dg1": b64encode(dg1) if dg1 is not None else None
          },
         "jsonrpc": "2.0",
         "id": 2,
