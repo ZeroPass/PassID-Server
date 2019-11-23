@@ -49,6 +49,11 @@ pip3 install werkzeug
 pip3 install coloredlogs
 ```
 
+* [pycountry](https://github.com/flyingcircusio/pycountry)
+```
+pip install pycountry
+```
+
 * [PostgreSQL adapter - psycopg2](http://initd.org/psycopg/)
 ```
 pip3 install psycopg2
