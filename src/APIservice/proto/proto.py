@@ -408,8 +408,8 @@ class PassIdProto:
     def __get_default_account_expiration(self):
         """ Returns until the session is valid. """
         # Note: in ideal situation passport expiration date would be read from DG1 file and returned here.
-        #       For now we return fix 15day period but should be calculated from the expiration time of DSC who signed the account's SOD.
-        return currentTime() + timedelta(days=15)
+        #       For now we return fix 10min period but should be calculated from the expiration time of DSC who signed the account's SOD.
+        return currentTime() + timedelta(minutes=10)
 
     def __verify_session_mac(self, a: AccountStorage, data: bytes, mac: bytes):
         """
