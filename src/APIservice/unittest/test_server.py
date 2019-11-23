@@ -28,7 +28,7 @@ class DevProto(proto.PassIdProto):
             return c
         return super().createNewChallenge()
 
-    def _get_account_expiration(self, uid: proto.UserId):
+    def __get_default_account_expiration(self, uid: proto.UserId):
         return datetime.utcnow() + timedelta(minutes=1)
 
     def validateCertificatePath(self, sod: ef.SOD):
