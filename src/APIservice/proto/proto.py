@@ -7,6 +7,7 @@ from .challenge import CID, Challenge
 from .db import StorageAPI
 from .session import Session, SessionKey
 from .user import UserId
+from . import utils
 
 from database.storage.accountStorage import AccountStorage
 
@@ -60,8 +61,6 @@ class PeMacVerifyFailed(ProtoError):
     """ Session mac verification error """
     code = 401
 
-def currentTime():
-    return datetime.utcnow()
 
 class PassIdProto:
 
@@ -71,7 +70,7 @@ class PassIdProto:
         self._log = log.getLogger("passid.proto")
 
     def createNewChallenge(self) -> Challenge:
-        now = currentTime()
+        now = utils.time_now()
         c   = Challenge.generate(now)
         self._db.addChallenge(c, now)
         self._log.debug("New challenge created cid={}".format(c.id))
@@ -98,7 +97,7 @@ class PassIdProto:
 
         if self._db.accountExists(uid):
             et = self._db.getAccountExpiry(uid)
-            if not self.__has_expired(et, currentTime()):
+            if not utils.has_expired(et, utils.time_now()):
                 raise PeAccountConflict("Account already registered")
             self._log.debug("Account has expired, registering new credentials")
 
@@ -127,7 +126,8 @@ class PassIdProto:
 
         self._log.debug("New account created: uid={}".format(uid.hex()))
         if len(sod.dsCertificates) > 0:
-            self._log.debug("Issuing country of account's eMRTD: {}".format(sod.dsCertificates[0].issuerCountry))
+            self._log.debug("Issuing country of account's eMRTD: {}"
+                .format(utils.code_to_country_name(sod.dsCertificates[0].issuerCountry)))
         self._log.verbose("vaild_until={}".format(a.validUntil))
         self._log.verbose("login_count={}".format(a.loginCount))
         self._log.verbose("dg1=None")
@@ -166,7 +166,7 @@ class PassIdProto:
             a.setDG1(dg1)
 
         # 3. Verify account credentials haven't expired
-        if self.__has_expired(a.validUntil, currentTime()):
+        if utils.has_expired(a.validUntil, utils.time_now()):
             raise PeCredentialsExpired("Account has expired")
 
         # 4. Verify challenge
@@ -182,8 +182,8 @@ class PassIdProto:
         a.loginCount += 1
         self._db.addOrUpdateAccount(a)
         if dg1 is not None:
-            self._log.info("File DG1(surname={} name={}) issued by country '{}' is now tied to eMRTD pubkey={}"
-                     .format(dg1.mrz.surname, dg1.mrz.name, dg1.mrz.country, a.aaPublicKey.hex()))
+            self._log.info("File DG1(surname={} name={}) issued by country {} is now tied to eMRTD pubkey={}"
+                     .format(dg1.mrz.surname, dg1.mrz.name, utils.code_to_country_name(dg1.mrz.country), a.aaPublicKey.hex()))
 
         # 7. Return session key and session expiry date
         self._log.debug("User has successfully logged-in. uid={} session_expires: {}".format(uid.hex(), a.validUntil))
@@ -233,9 +233,9 @@ class PassIdProto:
                 datetime = datetime.replace(tzinfo=None)
                 return datetime - timedelta(seconds=self.cttl)
 
-            ret = get_past(currentTime())
+            ret = get_past(utils.time_now())
             cet = cet.replace(tzinfo=None)
-            if self.__has_expired(cet, ret):
+            if utils.has_expired(cet, ret):
                 self._db.deleteChallenge(cid)
                 raise PeChallengeExpired("Challenge has expired")
 
@@ -249,9 +249,6 @@ class PassIdProto:
         except:
             self._log.error("Challenge verification failed!")
             raise
-
-    def __has_expired(self, t1: datetime, t2: datetime):
-        return t1 < t2
 
     def __verify_emrtd_trustchain(self, sod: ef.SOD, dg14: Union[ef.DG14, None], dg15: ef.DG15) -> None:
         """"
@@ -332,11 +329,14 @@ class PassIdProto:
         if csca is None:
             self._log.error("CSCA not found!")
             raise PePreconditionFailed("CSCA not found")
-        self._log.verbose("Found CSCA fp={} county={}".format(csca.fingerprint[0:8], csca.issuerCountry))
+
+        self._log.verbose("Found CSCA fp={} country={}".format(
+            csca.fingerprint[0:8], utils.code_to_country_name(csca.issuerCountry))
+        )
 
         # 2. Verify CSCA expiration time
-        self._log.verbose("Verifying CSCA expiration time. {}".format(self.__format_cert_et(csca)))
-        if not csca.isValidOn(currentTime()):
+        self._log.verbose("Verifying CSCA expiration time. {}".format(utils.format_cert_et(csca)))
+        if not csca.isValidOn(utils.time_now()):
             self._log.error("CSCA has expired!")
             raise PePreconditionFailed("CSCA has expired")
 
@@ -373,9 +373,11 @@ class PassIdProto:
             if dsc is None:
                 raise PePreconditionFailed("No DSC found")
 
-            self._log.verbose("Got DSC fp={} issuer_country={}, validating path to CSCA required: {}".format(dsc.fingerprint[0:8], dsc.issuerCountry, validateDSC))
-            self._log.verbose("Verifying DSC expiration time. {}".format(self.__format_cert_et(dsc)))
-            if not dsc.isValidOn(currentTime()):
+            self._log.verbose("Got DSC fp={} issuer_country={}, validating path to CSCA required: {}"
+                .format(dsc.fingerprint[0:8], utils.code_to_country_name(dsc.issuerCountry), validateDSC))
+
+            self._log.verbose("Verifying DSC expiration time. {}".format(utils.format_cert_et(dsc)))
+            if not dsc.isValidOn(utils.time_now()):
                 raise PePreconditionFailed("DSC has expired")
             elif validateDSC:
                 self.__validate_dsc_to_csca(dsc) # validate CSCA has issued DSC
@@ -409,7 +411,7 @@ class PassIdProto:
         """ Returns until the session is valid. """
         # Note: in ideal situation passport expiration date would be read from DG1 file and returned here.
         #       For now we return fix 10min period but should be calculated from the expiration time of DSC who signed the account's SOD.
-        return currentTime() + timedelta(minutes=10)
+        return utils.time_now() + timedelta(minutes=10)
 
     def __verify_session_mac(self, a: AccountStorage, data: bytes, mac: bytes):
         """
@@ -433,6 +435,3 @@ class PassIdProto:
 
         if not success:
             raise PeMacVerifyFailed("Invalid session MAC")
-
-    def __format_cert_et(self, cert: Certificate):
-        return "nvb=[{}] nva=[{}] now=[{}]".format(cert.notValidBefore, cert.notValidAfter, currentTime())

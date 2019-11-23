@@ -29,7 +29,7 @@ class DevProto(proto.PassIdProto):
         return super().createNewChallenge()
 
     def _get_default_account_expiration(self):
-        return datetime.utcnow() + timedelta(minutes=1)
+        return proto.utils.time_now() + timedelta(minutes=1)
 
     def validateCertificatePath(self, sod: ef.SOD):
             if not self._no_tcv:
