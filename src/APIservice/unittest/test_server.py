@@ -11,7 +11,7 @@ from settings import *
 from APIservice.api import PassIdApiServer
 from APIservice import proto
 from pymrtd import ef
-
+from pymrtd.pki import x509
 
 
 class DevProto(proto.PassIdProto):
@@ -81,6 +81,9 @@ def parse_args():
     ap.add_argument("-mdb", default=False,
         action='store_true', help="use MemoryDB for database. --db-* args will be ignored")
 
+    ap.add_argument("-mdb-pkd", default=None,
+        type=Path, help="path to eMRTD PKD root folder")
+
     ap.add_argument("-no-tls", default=False,
         action='store_true', help="do not use secure TLS connection")
 
@@ -139,11 +142,35 @@ def init_log(logLevel):
     fh.setFormatter(formatter)
     l.addHandler(fh)
 
+def load_pkd_to_mdb(mdb: proto.MemoryDB, pkd_path: Path):
+    l = log.getLogger('passid.api.server')
+    l.info("Loading PKD certificates into mdb ...")
+    cert_count = 0
+    for cert in pkd_path.rglob('*.cer'):
+        try:
+            l.verbose("Loading certificate: {}".format(cert))
+            cfd = cert.open('rb')
+            cert = x509.Certificate.load(cfd.read())
+
+            ku = cert.key_usage_value.native
+            if cert.ca and 'key_cert_sign' in ku:
+                cert.__class__ = x509.CscaCertificate
+                mdb.addCscaCertificate(cert)
+                cert_count+=1
+            elif 'digital_signature' in ku:
+                cert.__class__ = x509.DocumentSignerCertificate
+                mdb.addDscCertificate(cert)
+                cert_count+=1
+        except Exception as e:
+            l.warning("Could not load certificate '{}'".format(cert))
+    l.info("{} certificates loaded into mdb.".format(cert_count))
+
+
 def main():
     args = parse_args()
 
     init_log(args['log_level'])
-    l = log.getLogger('passid.server')
+    l = log.getLogger('passid.api.server')
     l.info("Starting new server session ...")
     l.debug("run parameters: {}".format(sys.argv[1:]))
 
@@ -170,6 +197,8 @@ def main():
 
     if args['mdb']:
         db  = proto.MemoryDB()
+        if args['mdb_pkd'] and not args['dev_no_tcv']:
+            load_pkd_to_mdb(db, args['mdb_pkd'])
     else:
         db = proto.DatabaseAPI(config.database.user, config.database.pwd, config.database.db)
 
