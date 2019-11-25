@@ -27,8 +27,8 @@ class CSCAStorage(object):
         self.subject      = csca.subject.human_friendly
         self.subjectKey   = csca.subjectKey
         self.authorityKey = csca.authorityKey
-        self.thisUpdate   = csca.notValidBefore
-        self.nextUpdate   = csca.notValidAfter
+        self.notValidBefore   = csca.notValidBefore
+        self.notValidAfter   = csca.notValidAfter
 
         try:
             self.serialNumber = str(csca.serial_number)
@@ -96,9 +96,9 @@ class DocumentSignerCertificateStorage(object):
         self.fingerprint  = dsc.fingerprint
         self.subject      = dsc.subject.human_friendly
         self.subjectKey   = dsc.subjectKey
-        self.authorityKey = dsc.authorityKey
-        self.thisUpdate   = dsc.notValidBefore
-        self.nextUpdate   = dsc.notValidAfter
+        self.authorityKey     = dsc.authorityKey
+        self.notValidBefore   = dsc.notValidBefore
+        self.notValidAfter   = dsc.notValidAfter
         try:
             self.serialNumber = str(dsc.serial_number)
         except:
