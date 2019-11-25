@@ -412,8 +412,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("-u", "--url", default='127.0.0.1',
                 type=str, help="Server http address. Default is localhost. The value '*' set the server open to worldwide.")
 
-ap.add_argument("-p", "--port", default=8000,
-                type=int, help="server listening port. Default is 8000.")
+ap.add_argument("-p", "--port", default=80,
+                type=int, help="server listening port. Default is 80.")
 
 ap.add_argument("--db-user", default="",
                 type=str, help="database user name")
