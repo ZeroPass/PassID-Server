@@ -154,7 +154,7 @@ class PassIdProto:
 
         # 1. Require DG1 if login count is gt 1
         self._log.debug("Logging-in account with uid={} login_count={}".format(uid.hex(), a.loginCount))
-        if a.loginCount > 1 and a.dg1 is None and dg1 is None:
+        if a.loginCount >= 1 and a.dg1 is None and dg1 is None:
             self._log.error("The login cannot continue due to due to max no. of anonymous logins and no DG1 file was provided!")
             raise PePreconditionRequired("File DG1 required")
 
