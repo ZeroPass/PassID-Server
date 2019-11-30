@@ -106,11 +106,12 @@ class PassIdProto:
         
         # 3. Verify challenge authentication
         sigAlgo = None
-        if dg14 is not None:
+        if aaPubKey.isEcKey():
+            if dg14 is None:
+                raise PePreconditionRequired("DG14 required")
+            elif dg14.aaSignatureAlgo is None:
+                raise PePreconditionRequired("Missing ActiveAuthenticationInfo in DG14 file")
             sigAlgo = dg14.aaSignatureAlgo
-
-        if aaPubKey.isEcKey() and dg14 is None:
-            raise PePreconditionRequired("DG14 required")
 
         self.__verify_challenge(cid, aaPubKey, csigs, sigAlgo)
         self._db.deleteChallenge(cid) # Verifying has succeeded, delete challenge from db
@@ -132,7 +133,7 @@ class PassIdProto:
         self._log.verbose("login_count={}".format(a.loginCount))
         self._log.verbose("dg1=None")
         self._log.verbose("pubkey={}".format(a.aaPublicKey.hex()))
-        self._log.verbose("sigAlgo={}".format("None" if dg14 is None else a.sigAlgo.hex()))
+        self._log.verbose("sigAlgo={}".format("None" if sigAlgo is None else a.sigAlgo.hex()))
         self._log.verbose("session={}".format(s.bytes().hex()))
 
         # 6. Return user id, session key and session expiry date
@@ -154,7 +155,7 @@ class PassIdProto:
         # 1. Require DG1 if login count is gt 1
         self._log.debug("Logging-in account with uid={} login_count={}".format(uid.hex(), a.loginCount))
         if a.loginCount > 1 and a.dg1 is None and dg1 is None:
-            self._log.error("Can't proceed login due to max no. of anonymous logins and no DG1 file provided!")
+            self._log.error("The login cannot continue due to due to max no. of anonymous logins and no DG1 file was provided!")
             raise PePreconditionRequired("File DG1 required")
 
         # 2. If we got DG1 verify SOD contains its hash,
