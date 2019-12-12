@@ -6,12 +6,31 @@ API service which works on JSON-RPC protocol
 * Installed requirements from [here](../../../../../PassID-Server#prerequisites),
 * Prepared PostgreSQL user and database (see [here](../../../../../PassID-Server#configure-postgresql-database)).
 
-### Parameters
+### Usage
+
+Call from /src folder:
+```
+ sudo python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0
+```
+
+Call from /src folder to run in background:
+```
+sudo nohup python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0 &  
+```
+
+Call from /src folder to run in background using MemoryDB:
+```
+sudo nohup python3 src/APIservice/apiserver/apiserver.py -mdb -mdb-pkd=<path_to_pkd_root> --url 0.0.0.0 &  
+```
+
+*Note: Listening to port 443 requiers commands to be run as `sudo`.*
+
+#### Server Parameters
 
 * --url (server URL address)
 ```
 default: 127.0.0.1
-type: strte
+type: str
 options:
         -localhost (127.0.0.1)
         -*         (0.0.0.0)
@@ -20,7 +39,7 @@ options:
 
 * --port (server port)
 ```
-default: 8000
+default: 443 or 80 in case of `-no-tls` flag
 type: int
 options: 
         -<PORT>      (<PORT>)
@@ -105,20 +124,6 @@ type: str
 default: false
 type: bool
 ```
-
-##Call
-
-Call from /src folder:
-```
- sudo python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0
-```
-
-Call from /src folder to run in background:
-```
-sudo nohup python3 src/APIservice/unittest/test_server.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0 &  
-```
-
-Action needs to be called as admin because of 80/443 port.
 
 ## License
 
