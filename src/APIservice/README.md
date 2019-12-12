@@ -3,8 +3,8 @@ API service which works on JSON-RPC protocol
 
 ### Prerequisites
 * Python 3.7 or higher,
-* Installed requirements from [here](../../../../../PassID-Server#prerequisites),
-* Prepared PostgreSQL user and database (see [here](../../../../../PassID-Server#configure-postgresql-database)).
+* Installed dependencies from [here](../../../../../PassID-Server#prerequisites),
+* Configured PostgreSQL database (see [here](../../../../../PassID-Server#configure-postgresql-database)).
 
 ### Usage
 
