@@ -4,10 +4,9 @@ Parse and store the data from ICAO source [ICAO download](https://pkddownloadsg.
 ## Getting Started
 The repository contains data structures and algorithms to parse/validate/store ICAO data.
 
-### Prerequisites
-* [Python 3.7 or higher](https://www.python.org/downloads/)
-
-Check this [webiste](https://wiki.python.org/moin/BeginnersGuide/Download) for installation tutorial.
+## Prerequisites
+* [Python 3.7 or higher](https://www.python.org/downloads/).<br>
+  Check this [webiste](https://wiki.python.org/moin/BeginnersGuide/Download) for installation guidelines.
 
 * [asn1crypto](https://github.com/wbond/asn1crypto)
 ```
@@ -80,13 +79,14 @@ pip3 install psycopg2
 
 ```psql=# grant all privileges on database <dbname> to <username> ;```
 
-
-### Structure definition
-* [Python Machine Readable Trevlers Document](src/pymrtd)
-
-### Separated project documentation
+## Usage
 * API service [README](src/APIservice#api-service)
 * Web app [README](src/WebApp#webapp-data)
+
+## Server module structure
+* [APIService](https://github.com/ZeroPass/PassID-Server/tree/master/src/APIservice)
+* [Python Machine Readable Trevlers Document](src/pymrtd)
+* [WebApp](https://github.com/ZeroPass/PassID-Server/tree/master/src/WebApp)
 
 ### Other documentation
 * [ICAO LDAP-LDIF structure specification](https://www.icao.int/publications/Documents/9303_p12_cons_en.pdf)
