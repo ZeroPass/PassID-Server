@@ -78,7 +78,7 @@ class PassIdProto:
 
     def cancelChallenge(self, cid: CID) -> Union[None, dict]:
         self._db.deleteChallenge(cid)
-        self._log.debug("Challenge was canceled cid={}".format(cid))
+        self._log.debug("Challenge canceled cid={}".format(cid))
 
     def register(self, dg15: ef.DG15, sod: ef.SOD, cid: CID, csigs: List[bytes], dg14: ef.DG14 = None) -> Tuple[UserId, SessionKey, datetime]:
         """
@@ -155,7 +155,7 @@ class PassIdProto:
         # 1. Require DG1 if login count is gt 1
         self._log.debug("Logging-in account with uid={} login_count={}".format(uid.hex(), a.loginCount))
         if a.loginCount >= 1 and a.dg1 is None and dg1 is None:
-            self._log.error("The login cannot continue due to due to max no. of anonymous logins and no DG1 file was provided!")
+            self._log.error("Login cannot continue due to max no. of anonymous logins and no DG1 file was provided!")
             raise PePreconditionRequired("File DG1 required")
 
         # 2. If we got DG1 verify SOD contains its hash,
@@ -187,7 +187,7 @@ class PassIdProto:
                      .format(dg1.mrz.surname, dg1.mrz.name, utils.code_to_country_name(dg1.mrz.country), a.aaPublicKey.hex()))
 
         # 7. Return session key and session expiry date
-        self._log.debug("User has successfully logged-in. uid={} session_expires: {}".format(uid.hex(), a.validUntil))
+        self._log.debug("User has been successfully logged-in. uid={} session_expires: {}".format(uid.hex(), a.validUntil))
         self._log.verbose("session={}".format(s.bytes().hex()))
         return (sk, a.validUntil)
 
@@ -246,7 +246,7 @@ class PassIdProto:
                 if not aaPubKey.verifySignature(ccs[idx], sig, sigAlgo):
                     raise PeSigVerifyFailed("Challenge signature verification failed")
 
-            self._log.success("Challenge signed with eMRTD public key was successfully verified!")
+            self._log.success("Challenge signed with user's eMRTD public key was successfully verified!")
         except:
             self._log.error("Challenge verification failed!")
             raise
