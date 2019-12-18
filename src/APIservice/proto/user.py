@@ -2,9 +2,6 @@ import base64
 import hashlib
 from typing import cast
 
-from cryptography.hazmat.primitives.hashes import Hash, SHA512_256
-from cryptography.hazmat.backends import default_backend
-
 from pymrtd.pki.keys import AAPublicKey
 
 class UserIdError(Exception):
@@ -24,12 +21,10 @@ class UserId(bytes):
     @staticmethod
     def fromAAPublicKey(pubKey: AAPublicKey) -> "UserId":
         assert isinstance(pubKey, AAPublicKey)
-        h1 = Hash(SHA512_256(), backend=default_backend())
-        h1.update(pubKey.dump())
-        h2 = hashlib.new(UserId._hash_algo)
-        h2.update(h1.finalize())
-        return UserId(h2.digest())
-        
+        h = hashlib.new(UserId._hash_algo)
+        h.update(pubKey.dump())
+        return UserId(h.digest())
+
     @staticmethod
     def fromhex(hexStr: str) -> "UserId":
         assert isinstance(hexStr, str)
