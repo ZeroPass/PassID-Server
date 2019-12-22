@@ -115,7 +115,7 @@ def init_log(logLevel):
     l = log.getLogger()
     coloredlogs.install(level=log.getLevelName(logLevel), 
         logger=l, 
-        fmt='[%(asctime)s] %(name)s %(levelname)s %(message)s', 
+        fmt='[%(asctime)s] %(levelname)-8s %(name)s %(message)s', 
         field_styles={
             'asctime': {'color': 'white'},
             'levelname': {'color': 'white', 'bold': True}
@@ -138,7 +138,8 @@ def init_log(logLevel):
     fh = log.FileHandler("server.log")
     fh.setLevel(logLevel)
     formatter = log.Formatter(
-        '[%(asctime)s] %(name)s %(levelname)s %(message)s')
+        '[%(asctime)s] %(levelname)-8s %(name)s %(message)s'
+    )
     fh.setFormatter(formatter)
     l.addHandler(fh)
 
