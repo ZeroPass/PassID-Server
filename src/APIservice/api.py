@@ -178,8 +178,10 @@ class PassIdApiServer:
         response = JRPCRespMgr.handle(
             request.data,
             self._req_disp
-        ).json
-        return Response(response, mimetype='application/json')
+        )
+        if response is not None:
+            return Response(response.json, mimetype='application/json')
+        return Response()
 
     def __handle_exception(self, e: Exception)-> dict:
         if isinstance(e, proto.ProtoError):
