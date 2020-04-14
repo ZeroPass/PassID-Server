@@ -87,13 +87,14 @@ default: false
 type: bool
 ```
 
-* --dev-fc : challenge is fixed to [this bytes](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/apiserver/apiserver.py#L26)
+* --dev-fc : use fixed constant challenge with value of [this bytes](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/apiserver/apiserver.py#L26) instead of random challenge  
+*To be used for testing server with [test client](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/unittest/test_client.py)*
 ```
 default: false
 type: bool
 ```
 
-* --dev-no-tcv : skip eMRTD chain verification
+* --dev-no-tcv : skip verification of eMRTD trustchain (CSCA=>DSC=>SOD)
 ```
 default: false
 type: bool
@@ -105,19 +106,20 @@ default: key in filepath "tls/server_key.pem"
 type: str
 ```
 
-* --log-level : set logging level
+* --log-level : set logging level. 0=verbose, 1=debug, 2=info, 3=warn, 4=error
 ```
 default: 0 - verbose
 type: int
 ```
 
-* --mdb : use MemoryDB instead of actual DB. *Note: MemoryDB is reset every time server is restarted.*
+* --mdb : use [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/c8e5095c6fde84a79ae0550c44e07dc68dfeac85/src/APIservice/proto/db.py#L256-L358) instead of sql database  
+*Note: All entries are stored in memory (RAM) and are erased when server is restarted*
 ```
 default: false
 type: bool
 ```
 
-* --mdb-pkd : path to the root folder of trustchain PKD CSCA/DSC certificates to be loaded into MemoryDB
+* --mdb-pkd : path to the root folder of trustchain CSCA/DSC certificates to be loaded into [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/c8e5095c6fde84a79ae0550c44e07dc68dfeac85/src/APIservice/proto/db.py#L256-L358)
 ```
 default: None
 type: str
