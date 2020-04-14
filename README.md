@@ -1,10 +1,17 @@
-# PassID ICAO data
-Parse and store the data from ICAO source [ICAO download](https://pkddownloadsg.icao.int/download).
+# PassID Server - PoC
+This repository contains server source code for PassID PoC. The server consists of two services: 
+* [API service](https://github.com/ZeroPass/PassID-Server/tree/master/src/APIservice) which serves JSON-RPC PassID API endpoint
+* [web app](https://github.com/ZeroPass/PassID-Server/tree/master/src/WebApp) platform for users to upload eMRTD trustchain certificates (CSCA/DSC) and revocation list (CRL) to server
 
-## Getting Started
-The repository contains data structures and algorithms to parse/validate/store ICAO data.
+Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/tree/master/src/pymrtd) library which is used to parse eMRTD file structure, verify integrity of eMRTD files and validate trustchain.
 
-## Prerequisites
+## PassID client repositories:
+* [EOSIO PassID mobile app](https://github.com/ZeroPass/eosio-passid-mobile-app)
+* [Android PassID PoC](https://github.com/ZeroPass/PassID-Android-App)
+* [iOS PassID PoC](https://github.com/ZeroPass/PassID-iOS-App)
+
+
+## Dependencies
 * [Python 3.7 or higher](https://www.python.org/downloads/).<br>
   Check this [website](https://wiki.python.org/moin/BeginnersGuide/Download) for installation guidelines.
 
@@ -61,35 +68,41 @@ The repository contains data structures and algorithms to parse/validate/store I
 ### Configure PostgreSQL database
 
 
-* Creating user
+* Create user
 
-  ```$ sudo -u postgres createuser <username>```
+  ```sudo -u postgres createuser <username>```
 
-* Creating Database
+* Create database
 
-  ```$ sudo -u postgres createdb <dbname>```
+  ```sudo -u postgres createdb <dbname>```
 
-* Giving the user a password
+* Set user password
 
-  ```$ sudo -u postgres psql```
+  ```sudo -u postgres psql```
 
   ```psql=# alter user <username> with encrypted password '<password>';```
 
-* Granting privileges on database
+* Set user privileges
 
   ```psql=# grant all privileges on database <dbname> to <username> ;```
 
 ## Usage
+To extract eMRTD trustchain certificates (CSCA/DSC) from master list files (`*.ml`) and PKD LADAP files (`*.ldif`) use python tool [pkdext](https://github.com/ZeroPass/PassID-documntation-and-tools/tree/master/tools/pkdext).
+(Optional) If using SQL database you can use class [Builder](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/management/builder.py#L54) to load trustchain certificates into database via custom script.
+
+**Instructions for running server services:**
 * API service [README](src/APIservice#api-service)
 * Web app [README](src/WebApp#webapp-data)
 
 ## Server module structure
 * [APIService](https://github.com/ZeroPass/PassID-Server/tree/master/src/APIservice)
-* [Python Machine Readable Trevlers Document](src/pymrtd)
+* [pymrtd](src/pymrtd)
 * [WebApp](https://github.com/ZeroPass/PassID-Server/tree/master/src/WebApp)
 
 ### Other documentation
-* [ICAO LDAP-LDIF structure specification](https://www.icao.int/publications/Documents/9303_p12_cons_en.pdf)
+* [ICAO 9303 eMRTD logical data structure](https://www.icao.int/publications/Documents/9303_p10_cons_en.pdf)
+* [ICAO 9303 security mechanisms for MRTDs](https://www.icao.int/publications/Documents/9303_p11_cons_en.pdf)
+* [ICAO 9303 LDAP-LDIF structure specification](https://www.icao.int/publications/Documents/9303_p12_cons_en.pdf)
 
 ## License
 
