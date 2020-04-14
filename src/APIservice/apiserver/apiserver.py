@@ -49,7 +49,7 @@ def parse_args():
     # Set-up cmd parameters
     ap = argparse.ArgumentParser()
     ap.add_argument("--challenge-ttl", default=300,
-        type=int, help="number of seconds until requested challenge expires")
+        type=int, help="number of seconds before requested challenge expires")
 
     ap.add_argument("-c", "--cert", default=str(_script_path / "tls/passid_server.cer"),
         type=str, help="server TLS certificate")
@@ -63,28 +63,28 @@ def parse_args():
     ap.add_argument("--db-name", default="",
         type=str, help="database name")
 
-    ap.add_argument("-dev", default=False,
+    ap.add_argument("--dev", default=False,
         action='store_true', help="start development version of server")
 
-    ap.add_argument("-dev-fc", default=False,
+    ap.add_argument("--dev-fc", default=False,
         action='store_true', help="dev option: use pre-set fixed challenge instead of random generated")
 
-    ap.add_argument("-dev-no-tcv", default=False,
+    ap.add_argument("--dev-no-tcv", default=False,
         action='store_true', help="dev option: do not verify eMRTD PKI trust-chain")
 
     ap.add_argument("-k", "--key", default=str(_script_path / "tls/server_key.pem"),
         type=str, help="server TLS private key")
 
-    ap.add_argument("-log-level", default=0,
+    ap.add_argument("--log-level", default=0,
         type=int, help="logging level, [0=verbose, 1=debug, 2=info, 3=warn, 4=error]")
 
-    ap.add_argument("-mdb", default=False,
+    ap.add_argument("--mdb", default=False,
         action='store_true', help="use MemoryDB for database. --db-* args will be ignored")
 
-    ap.add_argument("-mdb-pkd", default=None,
+    ap.add_argument("--mdb-pkd", default=None,
         type=Path, help="path to eMRTD PKD root folder")
 
-    ap.add_argument("-no-tls", default=False,
+    ap.add_argument("--no-tls", default=False,
         action='store_true', help="do not use secure TLS connection")
 
     ap.add_argument("-p", "--port",
