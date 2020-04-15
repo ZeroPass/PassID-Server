@@ -1,12 +1,74 @@
 # API service
-API service which works on JSON-RPC protocol
+PassID API service serves endpoint on JSON-RPC protocol.  
+Server has 6 API methods defined.
+All API mehods are defined in [api.py](https://github.com/ZeroPass/PassID-Server/blob/18e134e9316bf3888ae5e51ce4cf46468e832f44/src/APIservice/api.py#L56-L172) and their logic is defined in class [PassIdProto](https://github.com/ZeroPass/PassID-Server/blob/66b2ea724ec9a515d07298eed828c6849ec1cbbc/src/APIservice/proto/proto.py#L65-L438).  
+ To demonstrate the eMRTD PoC, API methods `passID.register` and `passID.login` should be called respectively.
 
-### Prerequisites
+## API Methods
+* **passID.ping**  
+  Used for testing connection with server.  
+  **params:** `int32` [*ping*] number  
+  **returns:** `int32` random [*pong*] number  
+  
+* **passID.getChallenge**  
+  Returns new random 32 bytes chanllenge to be at register or login to establish new session with.  
+  **params:** none  
+  **returns:** 32-byte [*challenge*]  
+  
+* **passID.cancelChallenge**  
+  Cancel requested challenge.  
+  **params:** `base64` encoded 32-byte [*challenge*] 
+  **returns:** none  
+  
+* **passID.register**  
+  Register new user using eMRTD credentials. Account will be valid for 10 minutes (1 minute if `--dev` flag was used) after which it will expire and user will have to register again.  
+  EF.SOD is validated into eMRTD trustchain unless `--dev-no-tcv` flag was used.  
+  **params:**
+    * `base64` encoded [[*dg15*]](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/pymrtd/ef/dg.py#L189-L203) file (eMRTD AA Public Key)
+    * `base64` encoded [[*SOD*]](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/pymrtd/ef/sod.py#L135-L195) file (eMRTD Data Security Object)
+    * `hex` encoded 4-byte [[*cid*]](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/proto/challenge.py#L12-L37) (challenge id)
+    * ordered list [*csigs*] of 4 `base64` encoded eMRTD signatures (AA) made over 8-byte long challenge chunks ([see verification process](https://github.com/ZeroPass/PassID-Server/blob/5800f368b03de6bf8d2ee9d26ba974ff3284b215/src/APIservice/proto/proto.py#L244-L249))
+    * (Optional)`base64` encoded [[*dg14*]](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/pymrtd/ef/dg.py#L161-L185) file.  
+    File is required if elliptic curve cryptography was used to produce signatures. (EF.DG14 contains info about ECC signature algorithm)
+
+  **returns:**
+    * `base64` encoded 20-byte [*uid*] [user id](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/APIservice/proto/user.py#L10-L39)
+    * `base64` encoded 32-byte HMAC [[*session_key*]](https://github.com/ZeroPass/PassID-Server/blob/23af931ab1ef8fdc0c2d948c1fd4a14a71d7beba/src/APIservice/proto/session.py#L12-L43)
+    * `int32` unix time when session [*expires*] (not used).
+    
+ * **passID.login**  
+  Logins existing user using eMRTD credentials.  
+  **params:**
+    * `base64` encoded 20-byte [*uid*] [user id](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/APIservice/proto/user.py#L10-L39)
+    * `hex` encoded 4-byte [[*cid*]](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/proto/challenge.py#L12-L37) (challenge id)
+    * ordered list [*csigs*] of 4 `base64` encoded eMRTD signatures (AA) made over 8-byte long challenge chunks ([see verification process](https://github.com/ZeroPass/PassID-Server/blob/5800f368b03de6bf8d2ee9d26ba974ff3284b215/src/APIservice/proto/proto.py#L244-L249))
+    * (Optional) `base64` encoded [[*dg1*]](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/pymrtd/ef/dg.py#L148-L158) file (eMRTD MRZ).  
+    By default EF.DG1 is required [second](https://github.com/ZeroPass/PassID-Server/blob/66b2ea724ec9a515d07298eed828c6849ec1cbbc/src/APIservice/proto/proto.py#L155-L159) time user logs-in.
+    
+   **returns:**
+    * `base64` encoded 32-byte HMAC [[*session_key*]](https://github.com/ZeroPass/PassID-Server/blob/23af931ab1ef8fdc0c2d948c1fd4a14a71d7beba/src/APIservice/proto/session.py#L12-L43)
+    * `int32` unix time when session [*expires*] (not used).
+    
+* **passID.sayHello**  
+  Returns grettings from server. Returned greeting is in format: *"Hi, anonymous!"* or  
+  *"Hi, <LAST_NAME> <FIRST_NAME>!"* if EF.DG1 was provided at login.  
+  (API method is defined only to present validated and parsed personal user data back to client)  
+  **params:**
+    * `base64` encoded 20-byte [*uid*] [user id](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/APIservice/proto/user.py#L10-L39)
+    *  `base64` encoded 32-byte [*mac*] digest of [HMAC-SHA256](https://github.com/ZeroPass/PassID-Server/blob/66b2ea724ec9a515d07298eed828c6849ec1cbbc/src/APIservice/proto/session.py#L63-L69) calculated over [[api name | uid]](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/proto/proto.py#L206) using session key (generated at register/login).
+    
+   **returns:**
+    * `str` greeting
+    
+## API Errors
+Server can return these PassID errors defined [here](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/proto/proto.py#L21-L62).
+ 
+## Prerequisites
 * Python 3.7 or higher,
 * Installed dependencies from [here](../../../../../PassID-Server#prerequisites),
 * Configured PostgreSQL database (see [here](../../../../../PassID-Server#configure-postgresql-database)).
 
-### Usage
+## Usage
 Run in the foreground:
 ```
  sudo python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0
@@ -29,7 +91,7 @@ Local run in dev mode using [MemoryDB](https://github.com/ZeroPass/PassID-Server
 python3 src/APIservice/apiserver/apiserver.py --dev --mdb --mdb-pkd=<path_to_pkd_root>
 ```
 
-#### Server Parameters
+### Server Parameters
 
 * --url : server URL address)
 ```
@@ -69,9 +131,9 @@ type: str
 
 
 
-* --challenge-ttl : challente TTL
+* --challenge-ttl : number of seconds before requested challenge expires
 ```
-default: 300e
+default: 300
 type: int
 ```
 
@@ -81,7 +143,8 @@ default: key in filepath "tls/passid_server.cer"
 type: str
 ```
 
-* --dev : developer mode
+* --dev : developer mode. When this flag is set all newly registered accounts will expired after 1 minute.  
+See also other *--dev-** flags.
 ```
 default: false
 type: bool
