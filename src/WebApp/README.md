@@ -5,7 +5,7 @@ Web portal where anyone can upload LDAP (`*.ldif`) files from [ICAO PKD](https:/
 ### Prerequisites
 * Python 3.7 or higher,
 * Installed requirements from [here](../../../../../PassID-Server#prerequisites),
-* Prepared PostgreSQL user and database (see [here](../../../../../PassID-Server#configure-postgresql-database)).
+* Configured PostgreSQL user and database (see [here](../../../../../PassID-Server#configure-postgresql-database)).
 
 ### Parameters
 
