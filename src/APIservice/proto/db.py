@@ -32,7 +32,8 @@ class SeEntryNotFound(StorageAPIError):
     pass
 
 class StorageAPI(ABC):
-
+    ''' Abstract storage interface for user data and MRTD trustchain certificates (CSCA, DSC) '''
+    
     @abstractmethod
     def getChallenge(self, cid: CID) -> Tuple[Challenge, datetime]:
         """ 
@@ -106,6 +107,11 @@ class DatabaseAPIError(StorageAPIError):
     pass
 
 class DatabaseAPI(StorageAPI):
+    ''' 
+    DatabaseAPI implements StorageAPI as persistent storage.
+    It's defined as abstraction layer over class Connection (which uses PostgreSQL)
+    to expose Connection interface to StorageAPI without mixing two interfaces.
+    '''
 
     def __init__(self, user: str, pwd: str, db: str):
         """Creating connection to the database and initialization of main strucutres"""
