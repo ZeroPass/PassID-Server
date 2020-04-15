@@ -2,7 +2,7 @@ import base64, hmac, hashlib
 from typing import cast
 import os
 
-from cryptography.hazmat.primitives.hashes import Hash, SHA512_256
+from cryptography.hazmat.primitives.hashes import Hash, SHA256
 from cryptography.hazmat.backends import default_backend
 
 
@@ -12,7 +12,7 @@ class SessionKeyError(Exception):
 class SessionKey(bytes):
     """ Demo class which could represent session auth/decrypt key """
 
-    _hash_algo = SHA512_256
+    _hash_algo = SHA256
 
     def __new__(cls, key: bytes) -> "SessionKey":
         if isinstance(key, bytes):
