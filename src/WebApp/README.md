@@ -1,5 +1,6 @@
 # WebApp data
-Portal where anyone can upload and parse ICAO data.
+Web portal where anyone can upload LDAP (`*.ldif`) files from [ICAO PKD](https://download.pkd.icao.int/) (Master list, DSC & CRL) to server. The uploaded certificates are then used by [API service](https://github.com/ZeroPass/PassID-Server/tree/master/src/APIservice).
+
 
 ### Prerequisites
 * Python 3.7 or higher,
@@ -8,7 +9,7 @@ Portal where anyone can upload and parse ICAO data.
 
 ### Parameters
 
-* --url (server URL address)
+* --url: server URL address
 ```
 default: 127.0.0.1
 type: str
@@ -18,7 +19,7 @@ options:
         -<IP>      (<IP>)
 ```
 
-* --port (server port)
+* --port : server port number
 ```
 default: 8000
 type: int
@@ -26,31 +27,31 @@ options:
         -<PORT>      (<PORT>)
 ```
 
-* --db-user (database username)
+* --db-user : database username
 ```
 default: empty string
 type: str
 ```
 
-* --db-pwd (database password)
+* --db-pwd : database password
 ```
 default: empty string
 type: str
 ```
 
-* --db-name (database name)
+* --db-name : database name
 ```
 default: empty string
 type: str
 ```
 
 ##Call
-Call from /src folder:
+Run in the foreground:
 ```
  python3 src/WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost
 ```
 
-Call from /src folder to run in background:
+Run in the background:
 ```
 nohup python3 src/WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost &  
 ```
