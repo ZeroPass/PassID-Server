@@ -22,7 +22,7 @@ All API mehods are defined in [api.py](https://github.com/ZeroPass/PassID-Server
   
 * **passID.register**  
   Register new user using eMRTD credentials. Account will be valid for 10 minutes (1 minute if `--dev` flag was used) after which it will expire and user will have to register again.  
-  EF.SOD is validated into eMRTD trustchain unless `--dev-no-tcv` flag was used.  
+  By default EF.SOD is always validated into eMRTD trustchain unless `--dev-no-tcv` flag was used.  
   **params:**
     * `base64` encoded [[*dg15*]](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/pymrtd/ef/dg.py#L189-L203) file (eMRTD AA Public Key)
     * `base64` encoded [[*SOD*]](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/pymrtd/ef/sod.py#L135-L195) file (eMRTD Data Security Object)
