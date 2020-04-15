@@ -30,12 +30,12 @@ sudo nohup python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --dpwd
 *Note: Listening to port 443 requiers commands to be run as `sudo`.*
 
 
-Local run using [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/c8e5095c6fde84a79ae0550c44e07dc68dfeac85/src/APIservice/proto/db.py#L256-L358):
+Local run using [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/ddcc6073d298cb1a4e0d99195d928a9dce0f78e5/src/APIservice/proto/db.py#L262-L375):
 ```
 python3 src/APIservice/apiserver/apiserver.py --mdb --mdb-pkd=<path_to_pkd_root>
 ```
 
-Local run in dev mode using [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/c8e5095c6fde84a79ae0550c44e07dc68dfeac85/src/APIservice/proto/db.py#L256-L358):
+Local run in dev mode using [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/ddcc6073d298cb1a4e0d99195d928a9dce0f78e5/src/APIservice/proto/db.py#L262-L375):
 ```
 python3 src/APIservice/apiserver/apiserver.py --dev --mdb --mdb-pkd=<path_to_pkd_root>
 ```
@@ -124,14 +124,14 @@ default: 0 - verbose
 type: int
 ```
 
-* --mdb : use [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/c8e5095c6fde84a79ae0550c44e07dc68dfeac85/src/APIservice/proto/db.py#L256-L358) instead of sql database  
+* --mdb : use [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/ddcc6073d298cb1a4e0d99195d928a9dce0f78e5/src/APIservice/proto/db.py#L262-L375) instead of sql database  
 *Note: All entries are stored in memory (RAM) and are erased when server is restarted*
 ```
 default: false
 type: bool
 ```
 
-* --mdb-pkd : path to the root folder of trustchain CSCA/DSC certificates to be loaded into [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/c8e5095c6fde84a79ae0550c44e07dc68dfeac85/src/APIservice/proto/db.py#L256-L358)
+* --mdb-pkd : path to the root folder of trustchain CSCA/DSC certificates to be loaded into [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/ddcc6073d298cb1a4e0d99195d928a9dce0f78e5/src/APIservice/proto/db.py#L262-L375)
 ```
 default: None
 type: str
