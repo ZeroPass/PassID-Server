@@ -254,6 +254,17 @@ class MemoryDBError(StorageAPIError):
     pass
 
 class MemoryDB(StorageAPI):
+    '''
+    MemoryDB implements StorageAPI as non-peristent database.
+    The data is stored in memory (RAM) and gets deleted as instance of MemoryDB is destroyed.
+    The purpose of MemoryDB is testing of passID proto without needing to set up (or reset) proper database.
+    Internally data is stored as dictionary in 4 categories: 
+        proto_challenges -> Dictionary[CID, Tuple[Challenge, datetime]]
+        accounts         -> Dictionary[UserId, AccountStorage]
+        cscas            -> Set[CscaCertificate]
+        dscs             -> Set[DocumentSignerCertificate]
+    '''
+    
     def __init__(self):
         self._d = {
             'proto_challenges' : {},
