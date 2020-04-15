@@ -45,7 +45,6 @@ default: empty string
 type: str
 ```
 
-##Call
 Run in the foreground:
 ```
  python3 src/WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost
