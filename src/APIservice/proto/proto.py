@@ -430,7 +430,7 @@ class PassIdProto:
         success = s.verifyMAC(data, mac)
         self._log.debug("MAC successfully verified!")
 
-        # Update account with new session once
+        # Update account's session nonce
         a.setSession(s)
         self._db.addOrUpdateAccount(a)
 
