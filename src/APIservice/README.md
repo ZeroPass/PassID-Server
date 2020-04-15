@@ -17,7 +17,7 @@ All API mehods are defined in [api.py](https://github.com/ZeroPass/PassID-Server
   
 * **passID.cancelChallenge**  
   Cancel requested challenge.  
-  **params:** `base64` encoded 32-byte [*challenge*] 
+  **params:** `base64` encoded 32-byte [*challenge*]  
   **returns:** none  
   
 * **passID.register**  
