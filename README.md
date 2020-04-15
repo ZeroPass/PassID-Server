@@ -5,11 +5,14 @@ This repository contains server source code for PassID PoC. The server consists 
 
 Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/tree/master/src/pymrtd) library which is used to parse eMRTD file structure, verify integrity of eMRTD files and validate trustchain.
 
-## PassID client repositories:
-* [EOSIO PassID mobile app](https://github.com/ZeroPass/eosio-passid-mobile-app)
-* [Android PassID PoC](https://github.com/ZeroPass/PassID-Android-App)
-* [iOS PassID PoC](https://github.com/ZeroPass/PassID-iOS-App)
-
+## Table of Contents  
+- [Dependencies](#dependencies)
+- [Configure PostgreSQL database](#configure-postgresql-database)
+- [Usage](#usage)
+  + [Instructions for running server services](#instructions-for-running-server-services)
+- [Server module structure](#server-module-structure)
+- [PassID client repositories](#passid-client-repositories)
+- [License](#license)
 
 ## Dependencies
 * [Python 3.7 or higher](https://www.python.org/downloads/).<br>
@@ -90,7 +93,7 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
 To extract eMRTD trustchain certificates (CSCA/DSC) from master list files (`*.ml`) and PKD LADAP files (`*.ldif`) use python tool [pkdext](https://github.com/ZeroPass/PassID-documntation-and-tools/tree/master/tools/pkdext).
 (Optional) If using SQL database you can use class [Builder](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/management/builder.py#L54) to load trustchain certificates into database via custom script.
 
-**Instructions for running server services:**
+#### Instructions for running server services:
 * API service [README](src/APIservice#api-service)
 * Web app [README](src/WebApp#webapp-data)
 
@@ -99,11 +102,10 @@ To extract eMRTD trustchain certificates (CSCA/DSC) from master list files (`*.m
 * [pymrtd](src/pymrtd)
 * [WebApp](https://github.com/ZeroPass/PassID-Server/tree/master/src/WebApp)
 
-### Other documentation
-* [ICAO 9303 eMRTD logical data structure](https://www.icao.int/publications/Documents/9303_p10_cons_en.pdf)
-* [ICAO 9303 security mechanisms for MRTDs](https://www.icao.int/publications/Documents/9303_p11_cons_en.pdf)
-* [ICAO 9303 LDAP-LDIF structure specification](https://www.icao.int/publications/Documents/9303_p12_cons_en.pdf)
+## PassID client repositories:
+* [EOSIO PassID mobile app](https://github.com/ZeroPass/eosio-passid-mobile-app)
+* [Android PassID PoC](https://github.com/ZeroPass/PassID-Android-App)
+* [iOS PassID PoC](https://github.com/ZeroPass/PassID-iOS-App)
 
 ## License
-
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
