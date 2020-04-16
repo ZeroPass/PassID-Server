@@ -17,6 +17,7 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
 ## Dependencies
 * [Python 3.7 or higher](https://www.python.org/downloads/).<br>
   Check this [website](https://wiki.python.org/moin/BeginnersGuide/Download) for installation guidelines.
+* PIP3 (sudo apt-get install python3-pip)
 
 * [asn1crypto](https://github.com/wbond/asn1crypto)
 ```
@@ -60,7 +61,7 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
 
 * [pycountry](https://github.com/flyingcircusio/pycountry)
 ```
-  pip install pycountry
+  pip3 install pycountry
 ```
 
 * [PostgreSQL adapter - psycopg2](http://initd.org/psycopg/)
