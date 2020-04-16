@@ -102,7 +102,7 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
   ```psql=# grant all privileges on database <dbname> to <username> ;```
 
 ## Usage
-To extract eMRTD trustchain certificates (CSCA/DSC) from master list files (`*.ml`) and PKD LADAP files (`*.ldif`) use python tool [pkdext](https://github.com/ZeroPass/PassID-documntation-and-tools/tree/master/tools/pkdext).
+To extract eMRTD trustchain certificates (CSCA/DSC) from master list files (`*.ml`) and PKD LDAP files (`*.ldif`) use python tool [pkdext](https://github.com/ZeroPass/PassID-documntation-and-tools/tree/master/tools/pkdext).
 (Optional) If using SQL database you can use class [Builder](https://github.com/ZeroPass/PassID-Server/blob/a87cb5cc55c160a9ca80583ecb6099d7a6e57660/src/management/builder.py#L54) to load trustchain certificates into database via custom script.
 
 #### Instructions for running server services:
