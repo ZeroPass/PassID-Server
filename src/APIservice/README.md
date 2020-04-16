@@ -20,12 +20,12 @@ All API mehods are defined in [api.py](https://github.com/ZeroPass/PassID-Server
 ## Usage
 Run in the foreground:
 ```
- sudo python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0
+ sudo python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url 0.0.0.0
 ```
 
 Run in the background:
 ```
-sudo nohup python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --dpwd <PWD> --db-name <NAME> --url 0.0.0.0 &  
+sudo nohup python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url 0.0.0.0 &  
 ```
 *Note: Listening to port 443 requiers commands to be run as `sudo`.*
 
