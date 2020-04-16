@@ -21,52 +21,54 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
 
 * [asn1crypto](https://github.com/wbond/asn1crypto)
 ```
- pip3 install asn1crypto
+ pip3 install (or python3.8 -m pip install) asn1crypto
 ```
 
 * [cryptography](https://github.com/pyca/cryptography)     (*Note: Library has to be patched see [README](https://github.com/ZeroPass/PassID-Server/blob/master/src/pymrtd/pki/README.md) of pki module*)
 ```
-  pip3 install cryptography
+  pip3 install (or python3.8 -m pip install)cryptography
 ```
 
 * [Python LDIF parser](https://ldif3.readthedocs.io/en/latest/)
 ```
-  pip3 install ldif3
+  pip3 install (or python3.8 -m pip install) ldif3
 ```
 
 * [Paramiko](https://pypi.org/project/paramiko/)
 ```
-  pip3 install paramiko
+  pip3 install (or python3.8 -m pip install) paramiko
 ```
 
 * [SQLAlchemy](https://www.sqlalchemy.org/)
 ```
-  pip3 install sqlalchemy
+  pip3 install (or python3.8 -m pip install) sqlalchemy
 ```
 
 * [JSON-RPC](https://github.com/pavlov99/json-rpc)
 ```
-  pip3 install json-rpc
+  pip3 install (or python3.8 -m pip install) json-rpc
 ```
 
 * [werkzeug](https://palletsprojects.com/p/werkzeug/)
 ```
-  pip3 install werkzeug
+  pip3 install (or python3.8 -m pip install) werkzeug
 ```
 
 * [ColoredLogs](https://coloredlogs.readthedocs.io/en/latest/)
 ```
-  pip3 install coloredlogs
+  pip3 install (or python3.8 -m pip install) coloredlogs
 ```
 
 * [pycountry](https://github.com/flyingcircusio/pycountry)
 ```
-  pip3 install pycountry
+  pip3 install (or python3.8 -m pip install) pycountry
 ```
 
 * [PostgreSQL adapter - psycopg2](http://initd.org/psycopg/)
 ```
-  pip3 install psycopg2
+  pip3 install (or python3.8 -m pip install) psycopg2
+  
+  On Unubuntu you need to run this to work: sudo apt install libpq-dev python3-dev
 ```
 
 ### Configure PostgreSQL database
