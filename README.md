@@ -71,18 +71,27 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
 
 ### Configure PostgreSQL database
 
+* Install PostgreSQL
+
+    ```sudo apt update```
+    
+    ```sudo apt install postgresql postgresql-contrib```
+
+* Login to PostgreSQL
+
+```sudo -i -u postgres```
 
 * Create user
 
-  ```sudo -u postgres createuser <username>```
+  ```createuser <username>```
 
 * Create database
 
-  ```sudo -u postgres createdb <dbname>```
+  ```createdb <dbname>```
 
 * Set user password
 
-  ```sudo -u postgres psql```
+  ```psql```
 
   ```psql=# alter user <username> with encrypted password '<password>';```
 
