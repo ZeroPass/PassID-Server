@@ -10,6 +10,7 @@ All API mehods are defined in [api.py](https://github.com/ZeroPass/PassID-Server
   + [Server Parameters](#server-parameters)
 - [API Methods](#api-methods)
 - [API Errors](#api-errors)
+- [Testing](#testing)
 - [License](#license)
 
 ## Prerequisites
@@ -200,7 +201,10 @@ type: bool
     
 ## API Errors
 Server can return these PassID errors defined [here](https://github.com/ZeroPass/PassID-Server/blob/master/src/APIservice/proto/proto.py#L21-L62).
- 
+
+## Testing
+See [test client](unittest) in unittest folder.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
