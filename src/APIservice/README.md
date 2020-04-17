@@ -31,7 +31,8 @@ sudo nohup python3 src/APIservice/apiserver/apiserver.py --db-user <USER> --db-p
 *Note: Listening to port 443 requiers commands to be run as `sudo`.*
 
 
-Local run using [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/ddcc6073d298cb1a4e0d99195d928a9dce0f78e5/src/APIservice/proto/db.py#L262-L375):
+Local run using [MemoryDB](https://github.com/ZeroPass/PassID-Server/blob/ddcc6073d298cb1a4e0d99195d928a9dce0f78e5/src/APIservice/proto/db.py#L262-L375):  
+*Note: Use python tool [pkdext](https://github.com/ZeroPass/PassID-documntation-and-tools/tree/master/tools/pkdext) to extract CSCA and DSC certificates from master list in LDAP (\*.ldif) files*
 ```
 python3 src/APIservice/apiserver/apiserver.py --mdb --mdb-pkd=<path_to_pkd_root>
 ```
