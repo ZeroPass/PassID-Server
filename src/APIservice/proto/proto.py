@@ -246,7 +246,7 @@ class PassIdProto:
                 if not aaPubKey.verifySignature(ccs[idx], sig, sigAlgo):
                     raise PeSigVerifyFailed("Challenge signature verification failed")
 
-            self._log.success("Challenge signed with user's eMRTD public key was successfully verified!")
+            self._log.success("Challenge signed with eMRTD was successfully verified!")
         except:
             self._log.error("Challenge verification failed!")
             raise
@@ -358,7 +358,7 @@ class PassIdProto:
                 signer = signer.chosen
                 issuer = signer["issuer"]
                 serial = signer["serial_number"].native
-                self._log.verbose("Getting DSC which signed SOD by serial no.: {} and issuer: [{}]".format(serial, issuer.human_friendly))
+                self._log.verbose("Getting DSC which issued SOD by serial no.: {} and issuer: [{}]".format(serial, issuer.human_friendly))
                 dsc, validateDSC = self.__get_dsc_by_isser_and_serial_number(
                     issuer,
                     serial,
@@ -366,7 +366,7 @@ class PassIdProto:
                 )
             elif signer.name == "subject_key_identifier":
                 keyid = signer.native
-                self._log.verbose("Getting DSC which signed SOD by subject_key={}".format(keyid.hex()))
+                self._log.verbose("Getting DSC which issued SOD by subject_key={}".format(keyid.hex()))
                 dsc, validateDSC = self.__get_dsc_by_subject_key(keyid, sod)
             else:
                 raise PePreconditionFailed("Unknown connection path from SOD to DSC")
