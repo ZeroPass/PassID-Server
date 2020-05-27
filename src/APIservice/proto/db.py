@@ -232,8 +232,7 @@ class DatabaseAPI(StorageAPI):
 
     def getCSCAbySubject(self, subject: Name) -> Union[x509.CscaCertificate, None]:
         """ Get CSCA by it's issuer and serial number. """
-        assert isinstance(issuer, Name)
-        assert isinstance(serialNumber, int)
+        assert isinstance(subject, Name)
         items = self._dbc.getSession() \
             .query(CSCAStorage) \
             .filter(CSCAStorage.subject == subject.human_friendly) \
