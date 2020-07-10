@@ -77,7 +77,7 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
 
     ```sudo apt update```
     
-    ```sudo apt install postgresql postgresql-contrib```
+    ```sudo apt install libpq-dev postgresql postgresql-contrib```
 
 * Login to PostgreSQL
 
