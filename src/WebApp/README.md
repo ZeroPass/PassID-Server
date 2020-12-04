@@ -45,14 +45,14 @@ default: empty string
 type: str
 ```
 
-Run in the foreground:
+Run in the foreground (in 'src/WebApp'):
 ```
- python3 src/WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost
+ python3 server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost
 ```
 
-Run in the background:
+Run in the background (in 'src/WebApp'):
 ```
-nohup python3 src/WebApp/server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost &  
+nohup python3 server.py --db-user <USER> --db-pwd <PWD> --db-name <NAME> --url localhost &  
 ```
 
 ### Other documentation
