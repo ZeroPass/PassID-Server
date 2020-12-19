@@ -24,7 +24,7 @@ Part of source code is also [pymrtd](https://github.com/ZeroPass/PassID-Server/t
  pip3 install (or python3.8 -m pip install) asn1crypto
 ```
 
-* [cryptography](https://github.com/pyca/cryptography)     (*Note: Library has to be patched see [README](https://github.com/ZeroPass/PassID-Server/blob/master/src/pymrtd/pki/README.md) of pki module*)
+* [cryptography](https://github.com/pyca/cryptography)
 ```
   pip3 install (or python3.8 -m pip install)cryptography
 ```
